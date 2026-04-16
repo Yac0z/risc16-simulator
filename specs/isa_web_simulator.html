@@ -1,0 +1,430 @@
+<!doctype html>
+<!-- Declare HTML5 so the browser uses modern parsing/rendering rules. -->
+<html lang="en">
+<!-- Set page language to improve accessibility and text tooling behavior. -->
+<head>
+  <!-- Start metadata section used by browser before body render. -->
+  <meta charset="utf-8" />
+  <!-- Force UTF-8 so symbols and code text render consistently. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Make layout responsive on mobile/zoomed displays. -->
+  <title>RISC16 ISA Interactive Simulator</title>
+  <!-- Title identifies the tab/window content. -->
+  <style>
+    /* Define theme variables once so colors stay consistent and editable. */
+    :root {
+      color-scheme: dark; /* Hint dark UI to browser native controls. */
+      --bg: #0f1116; /* Main page background color. */
+      --panel: #171a22; /* Card/panel surface color. */
+      --text: #e8ecf3; /* Primary readable text color. */
+      --muted: #9aa6b2; /* Secondary label/helper text color. */
+      --accent: #60a5fa; /* Accent color for focus/highlight. */
+      --border: #2a3140; /* Border color to separate sections. */
+      --warn: #f59e0b; /* Warning/error-like color. */
+      --ok: #34d399; /* Success/info color. */
+    }
+
+    * { box-sizing: border-box; } /* Make width/height include padding/border for predictable sizing. */
+
+    body {
+      margin: 0; /* Remove default browser margin to control full-page layout. */
+      background: var(--bg); /* Apply dark background theme. */
+      color: var(--text); /* Set global text color. */
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* Use readable system stack. */
+    }
+
+    .wrap {
+      max-width: 1280px; /* Prevent content from stretching too wide on large monitors. */
+      margin: 0 auto; /* Center the content block. */
+      padding: 14px; /* Add breathing room from viewport edges. */
+    }
+
+    .grid {
+      display: grid; /* Use CSS grid for two-column layout. */
+      grid-template-columns: 1.2fr 1fr; /* Give editor slightly more width than state panel. */
+      gap: 12px; /* Space between columns. */
+    }
+
+    .panel {
+      background: var(--panel); /* Group related controls/data on a card surface. */
+      border: 1px solid var(--border); /* Visually separate panels from background. */
+      border-radius: 10px; /* Round corners for readability and visual polish. */
+      padding: 10px; /* Internal spacing for panel contents. */
+    }
+
+    .row {
+      display: flex; /* Align controls in a row. */
+      flex-wrap: wrap; /* Allow controls to wrap on narrow screens. */
+      gap: 8px; /* Keep controls visually separated. */
+      align-items: center; /* Vertically align text/buttons. */
+      margin-bottom: 8px; /* Space before next section. */
+    }
+
+    button {
+      background: #1f2430; /* Distinct button surface from panel. */
+      border: 1px solid var(--border); /* Keep consistent border style. */
+      color: var(--text); /* Readable text in dark mode. */
+      border-radius: 7px; /* Compact rounded buttons. */
+      padding: 7px 10px; /* Comfortable click target. */
+      cursor: pointer; /* Indicate interactivity. */
+    }
+
+    button:hover { border-color: var(--accent); } /* Highlight button on hover. */
+    button:disabled { opacity: 0.45; cursor: not-allowed; } /* Communicate disabled state clearly. */
+
+    textarea, input {
+      width: 100%; /* Expand fields to container width. */
+      background: #0d1016; /* Dark input background for contrast. */
+      color: var(--text); /* Keep input text legible. */
+      border: 1px solid var(--border); /* Match panel/button border language. */
+      border-radius: 8px; /* Rounded fields for consistency. */
+      padding: 8px; /* Comfortable text editing padding. */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* Monospace for assembly/binary. */
+    }
+
+    textarea { min-height: 280px; resize: vertical; } /* Keep enough editing area while allowing user resize. */
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; } /* Compact readable table layout. */
+    th, td { border-bottom: 1px solid var(--border); padding: 6px 5px; text-align: left; vertical-align: top; } /* Uniform cell spacing and separators. */
+    th { color: var(--muted); font-weight: 600; } /* Lower-emphasis headers with readable weight. */
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; } /* Helper for displaying machine values. */
+    .small { font-size: .85rem; color: var(--muted); } /* Helper style for secondary text. */
+    .ok { color: var(--ok); } /* Helper for success messages. */
+    .warn { color: var(--warn); } /* Helper for warning/error messages. */
+    .line-active { background: rgba(96,165,250,.12); } /* Highlight current PC instruction row. */
+  </style>
+</head>
+<body>
+  <!-- Start visible page content. -->
+  <div class="wrap">
+    <!-- Keep all content centered and width-limited. -->
+    <h1>RISC16 ISA Interactive Simulator</h1>
+    <!-- Clear page title for user context. -->
+    <div class="grid">
+      <!-- Two-column workspace: editor left, live state right. -->
+      <section class="panel">
+        <!-- Editor/control panel. -->
+        <div class="row">
+          <!-- Top control row for assembler and execution controls. -->
+          <button id="sampleBtn">Load sample (RPC)</button>
+          <!-- Fill editor with a runnable demo including CAL/JPR r62. -->
+          <button id="assembleBtn">Assemble</button>
+          <!-- Convert assembly lines to encoded instructions. -->
+          <button id="resetBtn" disabled>Reset</button>
+          <!-- Reset simulator state while keeping program loaded. -->
+          <button id="stepCycleBtn" disabled>Step cycle</button>
+          <!-- Advance one FSM cycle. -->
+          <button id="stepInstrBtn" disabled>Step instruction</button>
+          <!-- Advance one full 5-state instruction. -->
+          <button id="runBtn" disabled>Run</button>
+          <!-- Start timed execution loop. -->
+          <button id="stopBtn" disabled>Stop</button>
+          <!-- Stop timed execution loop. -->
+        </div>
+        <div class="row">
+          <!-- Separate run-speed input for clarity. -->
+          <label class="small">Period (ms)</label>
+          <!-- Label for tick period control. -->
+          <input id="periodInput" style="width:90px" type="number" value="250" min="50" step="10" />
+          <!-- Numeric input drives run interval. -->
+        </div>
+        <textarea id="programInput" spellcheck="false"></textarea>
+        <!-- Assembly source text area (one instruction per line). -->
+        <div id="msg" class="small"></div>
+        <!-- Status/errors from assembler and controls. -->
+      </section>
+
+      <section class="panel">
+        <!-- Live state/trace panel. -->
+        <div class="row small">
+          <!-- Quick status chips in one line. -->
+          <span>State: <b id="stateLabel" class="mono">FETCH1</b></span>
+          <!-- Current FSM state display. -->
+          <span>Cycle: <b id="cycleLabel" class="mono">0</b></span>
+          <!-- Total cycle count since reset. -->
+          <span>PC: <b id="pcLabel" class="mono">0x0000</b></span>
+          <!-- Program counter mirror (R63). -->
+          <span>RPC: <b id="rpcLabel" class="mono">0x0000</b></span>
+          <!-- Return program counter mirror (R62). -->
+          <span>ACC: <b id="accLabel" class="mono">0x0000</b></span>
+          <!-- Accumulator mirror (R0). -->
+        </div>
+        <h3>Current instruction</h3>
+        <!-- Decoded fields for fetched instruction. -->
+        <table id="instrTable"></table>
+        <!-- Populated by JS each render. -->
+        <h3>Internal signals</h3>
+        <!-- Key control/data-path signals for current cycle. -->
+        <table id="sigTable"></table>
+        <!-- Populated by JS each render. -->
+        <h3>Program memory</h3>
+        <!-- Assembled program listing with PC highlight. -->
+        <table id="progTable"></table>
+        <!-- Populated by JS each render. -->
+        <h3>Registers (R0..R15, R62, R63)</h3>
+        <!-- Register snapshot needed for debugging program behavior. -->
+        <table id="regTable"></table>
+        <!-- Populated by JS each render. -->
+        <h3>Data memory (non-zero)</h3>
+        <!-- Sparse data memory view to keep table small. -->
+        <table id="memTable"></table>
+        <!-- Populated by JS each render. -->
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // Keep condition encoding explicit and aligned with ISA constants.
+    const COND = { F:0x0, T:0x1, Z:0x2, NZ:0x3, P:0x4, NP:0x5, N:0x6, NN:0x7, C:0x8, NC:0x9, V:0xA, NV:0xB };
+    // Build reverse lookup for readable decode output.
+    const COND_BY = Object.fromEntries(Object.entries(COND).map(([k,v]) => [v,k]));
+    // Keep opcode encoding explicit and aligned with ISA constants.
+    const OP = { AND:0, OR:1, XOR:2, NOT:3, ADD:4, SUB:5, LSL:6, LSR:7, LDA:8, STA:9, MTA:10, MTR:11, JRP:12, JRN:13, JPR:14, CAL:15 };
+    // Build reverse lookup for readable decode output.
+    const OP_BY = Object.fromEntries(Object.entries(OP).map(([k,v]) => [v,k]));
+    // Model fixed processor FSM states in order.
+    const STATES = ["FETCH1", "FETCH2", "DECODE", "EXEC", "STORE"];
+
+    // Cache DOM nodes once to avoid repeated document queries.
+    const ui = {
+      sampleBtn: document.getElementById("sampleBtn"), assembleBtn: document.getElementById("assembleBtn"),
+      resetBtn: document.getElementById("resetBtn"), stepCycleBtn: document.getElementById("stepCycleBtn"),
+      stepInstrBtn: document.getElementById("stepInstrBtn"), runBtn: document.getElementById("runBtn"),
+      stopBtn: document.getElementById("stopBtn"), periodInput: document.getElementById("periodInput"),
+      programInput: document.getElementById("programInput"), msg: document.getElementById("msg"),
+      stateLabel: document.getElementById("stateLabel"), cycleLabel: document.getElementById("cycleLabel"),
+      pcLabel: document.getElementById("pcLabel"), rpcLabel: document.getElementById("rpcLabel"), accLabel: document.getElementById("accLabel"),
+      instrTable: document.getElementById("instrTable"), sigTable: document.getElementById("sigTable"),
+      progTable: document.getElementById("progTable"), regTable: document.getElementById("regTable"), memTable: document.getElementById("memTable")
+    };
+
+    // Hold complete CPU + simulator runtime state in one mutable object.
+    const cpu = {
+      regs: new Uint16Array(64), flags: { Z:0, N:0, C:0, V:0 }, state: "FETCH1", cycle: 0,
+      program: [], dataMem: new Map(), instrWord: 0, instr: null, executeEn: 0, op1: 0, op2: 0, aluRes: 0,
+      ramAddr: 0, ramDin: 0, ramDout: 0, control: {}, running: false, timer: null
+    };
+
+    // Force 16-bit behavior to mimic hardware register width.
+    const u16 = n => (n & 0xFFFF);
+    // Format values as zero-padded 16-bit hex for readability.
+    const hx = n => "0x" + u16(n).toString(16).toUpperCase().padStart(4, "0");
+    // Sign-extend 6-bit immediate into 16-bit value.
+    const sx6 = v => (v & 0x20) ? (0xFFC0 | v) : v;
+
+    // Evaluate condition code against current status flags.
+    function condTrue(code) {
+      const f = cpu.flags;
+      if (code === COND.F) return 0; if (code === COND.T) return 1;
+      if (code === COND.Z) return f.Z ? 1 : 0; if (code === COND.NZ) return f.Z ? 0 : 1;
+      if (code === COND.P) return (!f.Z && !f.N) ? 1 : 0; if (code === COND.NP) return (f.Z || f.N) ? 1 : 0;
+      if (code === COND.N) return f.N ? 1 : 0; if (code === COND.NN) return f.N ? 0 : 1;
+      if (code === COND.C) return f.C ? 1 : 0; if (code === COND.NC) return f.C ? 0 : 1;
+      if (code === COND.V) return f.V ? 1 : 0; if (code === COND.NV) return f.V ? 0 : 1;
+      return 0;
+    }
+
+    // Split 16-bit instruction into ISA fields for control/datapath logic.
+    function decode(word) { return { word:u16(word), cond:(word>>12)&0xF, op:(word>>8)&0xF, updt:(word>>7)&1, imm:(word>>6)&1, val:word&0x3F }; }
+
+    // Compute ALU result and status flags for current operation.
+    function alu(op, a, b) {
+      a = u16(a); b = u16(b); let r = 0, C = 0, V = 0;
+      if (op === OP.AND) r = a & b;
+      else if (op === OP.OR) r = a | b;
+      else if (op === OP.XOR) r = a ^ b;
+      else if (op === OP.NOT) r = ~a;
+      else if (op === OP.ADD) { const s = a + b; r = s; C = s > 0xFFFF ? 1 : 0; const sa=(a>>15)&1,sb=(b>>15)&1,sr=(u16(s)>>15)&1; V = (sa===sb && sr!==sa) ? 1 : 0; }
+      else if (op === OP.SUB) { const d = (a - b) & 0x1FFFF; r = d; C = (a >= b) ? 1 : 0; const sa=(a>>15)&1,sb=(b>>15)&1,sr=(u16(d)>>15)&1; V = (sa!==sb && sr!==sa) ? 1 : 0; }
+      else if (op === OP.LSL) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (16 - sh)) & 1) ? 1 : 0; r = a << sh; const sa=(a>>15)&1,sr=(u16(r)>>15)&1; V = (sa!==sr) ? 1 : 0; }
+      else if (op === OP.LSR) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (sh - 1)) & 1) ? 1 : 0; r = a >>> sh; }
+      else r = b; // For move/load/store/jump-like paths, forward operand target value.
+      r = u16(r); const Z = (r === 0) ? 1 : 0; const N = (r & 0x8000) ? 1 : 0;
+      return { r, flags: { Z, N, C, V } };
+    }
+
+    // Read sparse data memory with zero default for untouched addresses.
+    function memRead(addr) { return cpu.dataMem.get(u16(addr)) ?? 0; }
+    // Write sparse data memory and drop zero cells to keep table compact.
+    function memWrite(addr, val) { const a=u16(addr), v=u16(val); if (v===0) cpu.dataMem.delete(a); else cpu.dataMem.set(a, v); }
+
+    // Compute visible control signals from current state/instruction/condition.
+    function computeSignals() {
+      const i = cpu.instr; const x = { instr_ce:0,status_ce:0,acc_ce:0,pc_ce:0,rpc_ce:0,rx_ce:0,ram_we:0,sel_ram_addr:0,sel_op1:0,sel_rf_din:0 };
+      if (!i) return x;
+      if (cpu.state === "FETCH1") x.sel_ram_addr = 0;
+      if (cpu.state === "FETCH2") x.instr_ce = 1;
+      if (cpu.state === "EXEC") { x.pc_ce = 1; if (cpu.executeEn && i.op === OP.STA) x.ram_we = 1; if (cpu.executeEn && i.op === OP.CAL) x.rpc_ce = 1; }
+      if (cpu.state === "STORE" && cpu.executeEn) {
+        if (i.op === OP.CAL) x.pc_ce = 1;
+        else if ([OP.MTA,OP.LDA,OP.ADD,OP.SUB,OP.AND,OP.OR,OP.XOR,OP.NOT,OP.LSL,OP.LSR].includes(i.op)) { x.acc_ce = 1; if (i.op === OP.LDA) x.sel_rf_din = 1; }
+        else if ([OP.MTR,OP.STA,OP.JRP,OP.JRN,OP.JPR].includes(i.op)) x.rx_ce = 1;
+      }
+      return x;
+    }
+
+    // Advance simulator by one hardware cycle according to FSM semantics.
+    function stepCycle() {
+      const pc = cpu.regs[63];
+      if (cpu.state === "FETCH1") { cpu.ramAddr = u16(pc); cpu.ramDout = cpu.program[cpu.ramAddr]?.word ?? 0; }
+      else if (cpu.state === "FETCH2") { cpu.instrWord = cpu.ramDout; cpu.instr = decode(cpu.instrWord); }
+      else if (cpu.state === "DECODE") { if (!cpu.instr) cpu.instr = decode(cpu.instrWord); cpu.executeEn = condTrue(cpu.instr.cond); cpu.op1 = ([OP.JRP,OP.JRN].includes(cpu.instr.op) ? cpu.regs[63] : cpu.regs[0]); cpu.op2 = cpu.instr.imm ? sx6(cpu.instr.val) : cpu.regs[cpu.instr.val]; }
+      else if (cpu.state === "EXEC") {
+        const out = alu(cpu.instr.op, cpu.op1, cpu.op2); cpu.aluRes = out.r; if (cpu.instr.updt) cpu.flags = out.flags;
+        cpu.ramAddr = u16(cpu.aluRes); cpu.ramDin = cpu.regs[0]; cpu.ramDout = memRead(cpu.ramAddr);
+        if (cpu.executeEn && cpu.instr.op === OP.STA) memWrite(cpu.ramAddr, cpu.ramDin);
+        cpu.regs[63] = u16(cpu.regs[63] + 1);
+        if (cpu.executeEn && cpu.instr.op === OP.CAL) cpu.regs[62] = cpu.regs[63];
+      } else if (cpu.state === "STORE" && cpu.executeEn) {
+        const i = cpu.instr, t = i.val & 0x3F, loadVal = (i.op === OP.LDA) ? memRead(cpu.ramAddr) : cpu.aluRes;
+        if ([OP.MTA,OP.LDA,OP.ADD,OP.SUB,OP.AND,OP.OR,OP.XOR,OP.NOT,OP.LSL,OP.LSR].includes(i.op)) cpu.regs[0] = u16(loadVal);
+        else if (i.op === OP.MTR || i.op === OP.STA) cpu.regs[t] = u16(cpu.regs[0]);
+        else if (i.op === OP.JRP) cpu.regs[63] = u16(cpu.regs[63] + cpu.op2);
+        else if (i.op === OP.JRN) cpu.regs[63] = u16(cpu.regs[63] - cpu.op2);
+        else if (i.op === OP.JPR || i.op === OP.CAL) cpu.regs[63] = u16(cpu.op2);
+      }
+      cpu.control = computeSignals();
+      cpu.state = STATES[(STATES.indexOf(cpu.state) + 1) % STATES.length];
+      cpu.cycle++;
+      render();
+    }
+
+    // Advance exactly one instruction by stepping five cycles.
+    function stepInstruction() { const start = cpu.state; let g=0; do { stepCycle(); g++; } while (cpu.state !== start && g < 16); }
+
+    // Parse operand token into ISA imm/val fields.
+    function parseOperand(token, lineNo) {
+      const t = token.trim().toUpperCase();
+      if (/^R\d+$/.test(t)) { const n = Number(t.slice(1)); if (n<0 || n>63) throw new Error(`Line ${lineNo}: register out of range`); return { imm:0, val:n }; }
+      if (/^0X[0-9A-F]+$/.test(t)) { const n = parseInt(t,16); if (n<0 || n>0x3F) throw new Error(`Line ${lineNo}: immediate out of 6-bit range`); return { imm:1, val:n }; }
+      if (/^-?\d+$/.test(t)) { let n = Number(t); if (n<-32 || n>63) throw new Error(`Line ${lineNo}: immediate range is [-32..63]`); if (n<0) n = (64+n)&0x3F; return { imm:1, val:n }; }
+      throw new Error(`Line ${lineNo}: invalid operand "${token}"`);
+    }
+
+    // Parse one source line into encoded machine instruction.
+    function parseLine(raw, lineNo) {
+      const clean = raw.replace(/;.*/, "").trim(); if (!clean) return null;
+      if (/^[01]{16}$/.test(clean.replace(/\s+/g,""))) { const bits = clean.replace(/\s+/g,""); return { asm: clean, word: parseInt(bits,2), lineNo }; }
+      const parts = clean.split(/\s+/); if (parts.length < 2) throw new Error(`Line ${lineNo}: expected "OPCOND[S] operand"`);
+      const head = parts[0].toUpperCase(); const operand = parts.slice(1).join("");
+      const opName = Object.keys(OP).sort((a,b)=>b.length-a.length).find(o => head.startsWith(o)); if (!opName) throw new Error(`Line ${lineNo}: unknown opcode`);
+      let rem = head.slice(opName.length); let updt = 0; if (rem.endsWith("S")) { updt = 1; rem = rem.slice(0,-1); }
+      const condName = rem || "T"; if (!(condName in COND)) throw new Error(`Line ${lineNo}: unknown condition`);
+      const { imm, val } = parseOperand(operand, lineNo);
+      const word = ((COND[condName]&0xF)<<12) | ((OP[opName]&0xF)<<8) | ((updt&1)<<7) | ((imm&1)<<6) | (val&0x3F);
+      return { asm: clean, word, lineNo };
+    }
+
+    // Assemble full editor content and initialize simulator state.
+    function assemble() {
+      try {
+        const out = []; ui.programInput.value.split(/\r?\n/).forEach((ln,i) => { const p = parseLine(ln, i+1); if (p) out.push(p); });
+        cpu.program = out; resetCpu();
+        ui.msg.innerHTML = `<span class="ok">Assembled ${out.length} instruction(s).</span>`;
+        setControls(out.length > 0);
+        render();
+      } catch (e) { ui.msg.innerHTML = `<span class="warn">${e.message}</span>`; }
+    }
+
+    // Stop timed execution safely.
+    function stopRun() { cpu.running = false; if (cpu.timer) clearInterval(cpu.timer); cpu.timer = null; setControls(cpu.program.length > 0); }
+    // Start timed execution at user-selected period.
+    function run() { if (!cpu.program.length || cpu.running) return; cpu.running = true; const ms = Math.max(50, Number(ui.periodInput.value || 250)); cpu.timer = setInterval(stepCycle, ms); setControls(true); }
+
+    // Reset CPU state but keep assembled program in memory.
+    function resetCpu() {
+      stopRun(); cpu.regs.fill(0); cpu.flags = { Z:0,N:0,C:0,V:0 }; cpu.state = "FETCH1"; cpu.cycle = 0;
+      cpu.instrWord = 0; cpu.instr = null; cpu.executeEn = 0; cpu.op1 = 0; cpu.op2 = 0; cpu.aluRes = 0;
+      cpu.ramAddr = 0; cpu.ramDin = 0; cpu.ramDout = 0; cpu.control = {}; cpu.dataMem.clear(); render();
+    }
+
+    // Enable/disable controls based on simulator availability/running state.
+    function setControls(programReady) {
+      ui.resetBtn.disabled = !programReady; ui.stepCycleBtn.disabled = !programReady; ui.stepInstrBtn.disabled = !programReady;
+      ui.runBtn.disabled = !programReady || cpu.running; ui.stopBtn.disabled = !cpu.running;
+    }
+
+    // Render current instruction decode table.
+    function drawInstr() {
+      const i = cpu.instr || { word:0,cond:0,op:0,updt:0,imm:0,val:0 };
+      ui.instrTable.innerHTML = `<tr><th>word</th><td class="mono">${hx(i.word)} (${i.word.toString(2).padStart(16,"0")})</td></tr>
+      <tr><th>cond</th><td>${COND_BY[i.cond] ?? "?"}</td></tr><tr><th>op</th><td>${OP_BY[i.op] ?? "?"}</td></tr>
+      <tr><th>updt</th><td>${i.updt}</td></tr><tr><th>imm</th><td>${i.imm}</td></tr><tr><th>val</th><td>${i.val}</td></tr>`;
+    }
+
+    // Render internal signal table used for debugging cycle behavior.
+    function drawSig() {
+      const c = cpu.control || {};
+      const rows = [["execute_en",cpu.executeEn],["op1",hx(cpu.op1)],["op2",hx(cpu.op2)],["alu_res",hx(cpu.aluRes)],["ram_addr",hx(cpu.ramAddr)],["ram_din",hx(cpu.ramDin)],["ram_dout",hx(cpu.ramDout)],["instr_ce",c.instr_ce??0],["status_ce",c.status_ce??0],["acc_ce",c.acc_ce??0],["pc_ce",c.pc_ce??0],["rpc_ce",c.rpc_ce??0],["rx_ce",c.rx_ce??0],["ram_we",c.ram_we??0],["sel_ram_addr",c.sel_ram_addr??0],["sel_op1",c.sel_op1??0],["sel_rf_din",c.sel_rf_din??0],["flags Z N C V",`${cpu.flags.Z} ${cpu.flags.N} ${cpu.flags.C} ${cpu.flags.V}`]];
+      ui.sigTable.innerHTML = rows.map(([k,v]) => `<tr><th>${k}</th><td class="mono">${v}</td></tr>`).join("");
+    }
+
+    // Render assembled program and mark current PC line.
+    function drawProgram() {
+      const pc = u16(cpu.regs[63]); let html = `<tr><th>Addr</th><th>Asm</th><th>Bits</th></tr>`;
+      cpu.program.forEach((p,idx) => { html += `<tr class="${idx===pc?"line-active":""}"><td class="mono">${hx(idx)}</td><td class="mono">${p.asm}</td><td class="mono">${p.word.toString(2).padStart(16,"0")}</td></tr>`; });
+      ui.progTable.innerHTML = html;
+    }
+
+    // Render selected register subset plus architectural special registers.
+    function drawRegs() {
+      let html = `<tr><th>Reg</th><th>Value</th></tr>`; for (let i=0;i<16;i++) html += `<tr><td class="mono">R${i}</td><td class="mono">${hx(cpu.regs[i])}</td></tr>`;
+      html += `<tr><td class="mono">R62 (RPC)</td><td class="mono">${hx(cpu.regs[62])}</td></tr><tr><td class="mono">R63 (PC)</td><td class="mono">${hx(cpu.regs[63])}</td></tr>`;
+      ui.regTable.innerHTML = html;
+    }
+
+    // Render sparse data memory map with non-zero cells only.
+    function drawMem() {
+      const entries = [...cpu.dataMem.entries()].sort((a,b)=>a[0]-b[0]); let html = `<tr><th>Addr</th><th>Content</th></tr>`;
+      if (!entries.length) html += `<tr><td colspan="2" class="small">No non-zero cells.</td></tr>`;
+      entries.forEach(([a,v]) => html += `<tr><td class="mono">${hx(a)}</td><td class="mono">${hx(v)}</td></tr>`);
+      ui.memTable.innerHTML = html;
+    }
+
+    // Refresh all live UI outputs from current CPU state.
+    function render() {
+      ui.stateLabel.textContent = cpu.state; ui.cycleLabel.textContent = String(cpu.cycle);
+      ui.pcLabel.textContent = hx(cpu.regs[63]); ui.rpcLabel.textContent = hx(cpu.regs[62]); ui.accLabel.textContent = hx(cpu.regs[0]);
+      drawInstr(); drawSig(); drawProgram(); drawRegs(); drawMem();
+    }
+
+    // Populate a runnable sample that demonstrates RPC usage.
+    ui.sampleBtn.addEventListener("click", () => {
+      ui.programInput.value = [
+        "; OPCOND[S] operand",
+        "; RPC example: CAL stores return in R62, JPR r62 returns",
+        "MTATS 0x05",
+        "MTRT r1",
+        "ADDTS r1",
+        "STAT 0x10",
+        "LDATS 0x10",
+        "CALT 0x08",
+        "ANDTS r1",
+        "JPRT r62",
+        "XORTS 0x0F",
+        "SUBTS 0x01"
+      ].join("\n");
+      ui.msg.textContent = "Sample loaded.";
+    });
+
+    // Hook assemble button to assembler function.
+    ui.assembleBtn.addEventListener("click", assemble);
+    // Hook reset button to CPU reset function.
+    ui.resetBtn.addEventListener("click", resetCpu);
+    // Hook single-cycle stepping button.
+    ui.stepCycleBtn.addEventListener("click", stepCycle);
+    // Hook single-instruction stepping button.
+    ui.stepInstrBtn.addEventListener("click", stepInstruction);
+    // Hook run button to interval execution.
+    ui.runBtn.addEventListener("click", run);
+    // Hook stop button to interval cancel.
+    ui.stopBtn.addEventListener("click", stopRun);
+
+    // Start with controls disabled until first successful assembly.
+    setControls(false);
+    // Render initial empty state to avoid blank tables.
+    render();
+  </script>
+</body>
+</html>
