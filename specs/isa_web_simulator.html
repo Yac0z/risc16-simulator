@@ -1,219 +1,438 @@
-<!doctype html>
-<!-- Declare HTML5 so the browser uses modern parsing/rendering rules. -->
-<html lang="en">
-<!-- Set page language to improve accessibility and text tooling behavior. -->
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
 <head>
-  <!-- Start metadata section used by browser before body render. -->
   <meta charset="utf-8" />
-  <!-- Force UTF-8 so symbols and code text render consistently. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Make layout responsive on mobile/zoomed displays. -->
-  <title>RISC16 ISA Interactive Simulator</title>
-  <!-- Title identifies the tab/window content. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KINETIC_ARCH_v1.0 | RISC-16 Simulator</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-container": "#00ff00",
+            "secondary-container": "#508eff",
+            "background": "#10141a",
+            "surface": "#10141a",
+            "surface-container": "#1c2026",
+            "surface-container-low": "#181c22",
+            "surface-container-highest": "#31353c",
+            "surface-container-high": "#262a31",
+            "surface-container-lowest": "#0a0e14",
+            "on-surface": "#dfe2eb",
+            "on-surface-variant": "#b9ccaf",
+            "outline-variant": "#3b4b35"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk"],
+            body: ["Inter"],
+            mono: ["JetBrains Mono"]
+          }
+        }
+      }
+    };
+  </script>
   <style>
-    /* Define theme variables once so colors stay consistent and editable. */
-    :root {
-      color-scheme: dark; /* Hint dark UI to browser native controls. */
-      --bg: #0f1116; /* Main page background color. */
-      --panel: #171a22; /* Card/panel surface color. */
-      --text: #e8ecf3; /* Primary readable text color. */
-      --muted: #9aa6b2; /* Secondary label/helper text color. */
-      --accent: #60a5fa; /* Accent color for focus/highlight. */
-      --border: #2a3140; /* Border color to separate sections. */
-      --warn: #f59e0b; /* Warning/error-like color. */
-      --ok: #34d399; /* Success/info color. */
+    .glow-primary {
+      filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.4));
     }
 
-    * { box-sizing: border-box; } /* Make width/height include padding/border for predictable sizing. */
-
-    body {
-      margin: 0; /* Remove default browser margin to control full-page layout. */
-      background: var(--bg); /* Apply dark background theme. */
-      color: var(--text); /* Set global text color. */
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; /* Use readable system stack. */
+    .glow-secondary {
+      filter: drop-shadow(0 0 8px rgba(80, 142, 255, 0.4));
     }
 
-    .wrap {
-      max-width: 1280px; /* Prevent content from stretching too wide on large monitors. */
-      margin: 0 auto; /* Center the content block. */
-      padding: 14px; /* Add breathing room from viewport edges. */
+    .data-bus text,
+    .ctrl-bus text {
+      stroke: none;
+      stroke-width: 0;
+      paint-order: fill;
     }
-
-    .grid {
-      display: grid; /* Use CSS grid for two-column layout. */
-      grid-template-columns: 1.2fr 1fr; /* Give editor slightly more width than state panel. */
-      gap: 12px; /* Space between columns. */
-    }
-
-    .panel {
-      background: var(--panel); /* Group related controls/data on a card surface. */
-      border: 1px solid var(--border); /* Visually separate panels from background. */
-      border-radius: 10px; /* Round corners for readability and visual polish. */
-      padding: 10px; /* Internal spacing for panel contents. */
-    }
-
-    .row {
-      display: flex; /* Align controls in a row. */
-      flex-wrap: wrap; /* Allow controls to wrap on narrow screens. */
-      gap: 8px; /* Keep controls visually separated. */
-      align-items: center; /* Vertically align text/buttons. */
-      margin-bottom: 8px; /* Space before next section. */
-    }
-
-    button {
-      background: #1f2430; /* Distinct button surface from panel. */
-      border: 1px solid var(--border); /* Keep consistent border style. */
-      color: var(--text); /* Readable text in dark mode. */
-      border-radius: 7px; /* Compact rounded buttons. */
-      padding: 7px 10px; /* Comfortable click target. */
-      cursor: pointer; /* Indicate interactivity. */
-    }
-
-    button:hover { border-color: var(--accent); } /* Highlight button on hover. */
-    button:disabled { opacity: 0.45; cursor: not-allowed; } /* Communicate disabled state clearly. */
-
-    textarea, input {
-      width: 100%; /* Expand fields to container width. */
-      background: #0d1016; /* Dark input background for contrast. */
-      color: var(--text); /* Keep input text legible. */
-      border: 1px solid var(--border); /* Match panel/button border language. */
-      border-radius: 8px; /* Rounded fields for consistency. */
-      padding: 8px; /* Comfortable text editing padding. */
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; /* Monospace for assembly/binary. */
-    }
-
-    textarea { min-height: 280px; resize: vertical; } /* Keep enough editing area while allowing user resize. */
-
-    table { width: 100%; border-collapse: collapse; font-size: .9rem; } /* Compact readable table layout. */
-    th, td { border-bottom: 1px solid var(--border); padding: 6px 5px; text-align: left; vertical-align: top; } /* Uniform cell spacing and separators. */
-    th { color: var(--muted); font-weight: 600; } /* Lower-emphasis headers with readable weight. */
-
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; } /* Helper for displaying machine values. */
-    .small { font-size: .85rem; color: var(--muted); } /* Helper style for secondary text. */
-    .ok { color: var(--ok); } /* Helper for success messages. */
-    .warn { color: var(--warn); } /* Helper for warning/error messages. */
-    .line-active { background: rgba(96,165,250,.12); } /* Highlight current PC instruction row. */
   </style>
 </head>
-<body>
-  <!-- Start visible page content. -->
-  <div class="wrap">
-    <!-- Keep all content centered and width-limited. -->
-    <h1>RISC16 ISA Interactive Simulator</h1>
-    <!-- Clear page title for user context. -->
-    <div class="grid">
-      <!-- Two-column workspace: editor left, live state right. -->
-      <section class="panel">
-        <!-- Editor/control panel. -->
-        <div class="row">
-          <!-- Top control row for assembler and execution controls. -->
-          <button id="sampleBtn">Load sample (RPC)</button>
-          <!-- Fill editor with a runnable demo including CAL/JPR r62. -->
-          <button id="assembleBtn">Assemble</button>
-          <!-- Convert assembly lines to encoded instructions. -->
-          <button id="resetBtn" disabled>Reset</button>
-          <!-- Reset simulator state while keeping program loaded. -->
-          <button id="stepCycleBtn" disabled>Step cycle</button>
-          <!-- Advance one FSM cycle. -->
-          <button id="stepInstrBtn" disabled>Step instruction</button>
-          <!-- Advance one full 5-state instruction. -->
-          <button id="runBtn" disabled>Run</button>
-          <!-- Start timed execution loop. -->
-          <button id="stopBtn" disabled>Stop</button>
-          <!-- Stop timed execution loop. -->
-        </div>
-        <div class="row">
-          <!-- Separate run-speed input for clarity. -->
-          <label class="small">Period (ms)</label>
-          <!-- Label for tick period control. -->
-          <input id="periodInput" style="width:90px" type="number" value="250" min="50" step="10" />
-          <!-- Numeric input drives run interval. -->
-        </div>
-        <textarea id="programInput" spellcheck="false"></textarea>
-        <!-- Assembly source text area (one instruction per line). -->
-        <div id="msg" class="small"></div>
-        <!-- Status/errors from assembler and controls. -->
-      </section>
 
-      <section class="panel">
-        <!-- Live state/trace panel. -->
-        <div class="row small">
-          <!-- Quick status chips in one line. -->
-          <span>State: <b id="stateLabel" class="mono">FETCH1</b></span>
-          <!-- Current FSM state display. -->
-          <span>Cycle: <b id="cycleLabel" class="mono">0</b></span>
-          <!-- Total cycle count since reset. -->
-          <span>PC: <b id="pcLabel" class="mono">0x0000</b></span>
-          <!-- Program counter mirror (R63). -->
-          <span>RPC: <b id="rpcLabel" class="mono">0x0000</b></span>
-          <!-- Return program counter mirror (R62). -->
-          <span>ACC: <b id="accLabel" class="mono">0x0000</b></span>
-          <!-- Accumulator mirror (R0). -->
+<body class="bg-background text-on-surface font-body overflow-hidden h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-[#10141a] z-50 flex justify-between items-center px-6 h-16 border-b border-outline-variant/15">
+    <span class="text-xl font-bold text-[#00ff00]">KINETIC_ARCH_v1.0</span>
+  </header>
+  <!-- Main Container -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="bg-[#181c22] w-20 border-r border-[#3b4b35]/15"></aside>
+    <!-- Main Grid -->
+    <main class="flex-1 grid grid-cols-12 gap-px bg-outline-variant/10 overflow-hidden">
+      <!-- Code Editor -->
+      <section class="col-span-3 bg-surface-container-low flex flex-col border-r border-outline-variant/15">
+        <div class="flex-1 p-4 overflow-y-auto">
+          <textarea id="programInput"
+            class="w-full h-full bg-transparent text-on-surface border-none outline-none resize-none font-mono text-sm"
+            placeholder="Enter assembly code..."></textarea>
         </div>
-        <h3>Current instruction</h3>
-        <!-- Decoded fields for fetched instruction. -->
-        <table id="instrTable"></table>
-        <!-- Populated by JS each render. -->
-        <h3>Internal signals</h3>
-        <!-- Key control/data-path signals for current cycle. -->
-        <table id="sigTable"></table>
-        <!-- Populated by JS each render. -->
-        <h3>Program memory</h3>
-        <!-- Assembled program listing with PC highlight. -->
-        <table id="progTable"></table>
-        <!-- Populated by JS each render. -->
-        <h3>Registers (R0..R15, R62, R63)</h3>
-        <!-- Register snapshot needed for debugging program behavior. -->
-        <table id="regTable"></table>
-        <!-- Populated by JS each render. -->
-        <h3>Data memory (non-zero)</h3>
-        <!-- Sparse data memory view to keep table small. -->
-        <table id="memTable"></table>
-        <!-- Populated by JS each render. -->
+        <div class="p-4 bg-surface-container flex flex-col gap-2">
+          <button id="sampleBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Load
+            Sample</button>
+          <button id="assembleBtn"
+            class="bg-primary-container text-on-primary-container p-2 rounded text-xs font-mono glow-primary">Assemble</button>
+          <button id="runBtn"
+            class="bg-primary-container text-on-primary-container p-2 rounded text-xs font-mono">Run</button>
+          <button id="nextBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Next
+            Cycle</button>
+          <button id="resetBtn"
+            class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Reset</button>
+          <div id="statusMsg" class="text-[10px] font-mono p-2 rounded bg-surface-container-highest text-on-surface/60">
+          </div>
+        </div>
       </section>
-    </div>
+      <!-- Schematic -->
+      <section class="col-span-6 bg-surface-dim flex flex-col overflow-hidden">
+        <div class="p-3 border-b border-outline-variant/15 flex justify-between items-center text-[10px]">
+          <span class="font-mono text-primary-container font-bold">CORE_CANVAS_01 :: SCHEMATIC</span>
+          <div class="flex gap-3">
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-primary-container glow-primary animate-pulse"></div><span
+                class="text-on-surface-variant">DATA_BUS</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-secondary-container"></div><span
+                class="text-on-surface-variant">CTRL_SIG</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-6 overflow-auto">
+          <svg viewBox="0 0 900 650" class="w-full h-full drop-shadow-2xl" style="min-width:600px;">
+            <!-- Data Bus Wires -->
+            <g class="data-bus" stroke="#00ff00" stroke-width="2.2" fill="none" opacity="0.8">
+              <!-- Instruction path: RAM -> IR -->
+              <path d="M 150 95 H 220 V 150 H 250" class="glow-primary"></path>
+              <text x="172" y="144" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">instr[15:0]</text>
+
+              <!-- Register and immediate source paths to muxes -->
+              <path d="M 250 380 H 320" class="glow-primary"></path>
+              <text x="262" y="374" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">rs_data</text>
+              <path d="M 530 228 H 440 V 372" class="glow-primary"></path>
+              <text x="446" y="240" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">imm_sext</text>
+
+              <!-- MUX outputs to ALU -->
+              <path d="M 400 372 H 420 V 352 H 571" class="glow-primary"></path>
+              <text x="526" y="346" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">op_a</text>
+              <path d="M 520 392 H 582" class="glow-primary"></path>
+              <text x="528" y="386" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">op_b</text>
+
+              <!-- ALU input connection nodes -->
+              <circle cx="571" cy="352" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+              <circle cx="582" cy="392" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+
+              <!-- ALU result fanout -->
+              <path d="M 710 382 H 760 V 500 H 700" class="glow-primary"></path>
+              <text x="716" y="376" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">alu_result</text>
+              <path d="M 760 382 H 800 V 190 H 720" class="glow-primary"></path>
+              <text x="804" y="210" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">flags_bus</text>
+            </g>
+
+            <!-- Control Signals (blue) -->
+            <g class="ctrl-bus" stroke="#508eff" stroke-width="1.6" fill="none" opacity="0.7">
+              <path d="M 470 112 H 800 V 140" class="glow-secondary"></path>
+              <text x="644" y="106" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">flag_we</text>
+
+              <path d="M 470 122 H 360 V 322" class="glow-secondary"></path>
+              <text x="336" y="286" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">sel_a</text>
+
+              <path d="M 470 132 H 480 V 322" class="glow-secondary"></path>
+              <text x="486" y="286" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">sel_b</text>
+
+              <path d="M 470 142 H 635 V 335" class="glow-secondary"></path>
+              <text x="566" y="164" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">alu_op[3:0]</text>
+            </g>
+
+            <!-- RAM -->
+            <rect x="40" y="60" width="110" height="72" rx="4" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+            </rect>
+            <text x="95" y="95" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="bold"
+              fill="#b9ccaf">RAM</text>
+            <text x="95" y="112" text-anchor="middle" font-size="8" fill="#b9ccaf">addr: PC</text>
+
+            <!-- Instruction Register -->
+            <g>
+              <rect x="250" y="160" width="280" height="88" rx="4" fill="#262a31" stroke="#3b4b35" stroke-width="1">
+              </rect>
+              <text x="262" y="180" font-family="JetBrains Mono" font-size="9" fill="#00ff00"
+                font-weight="bold">INSTRUCTION_REG</text>
+              <rect x="272" y="198" width="38" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="291" y="222" text-anchor="middle" font-size="8" fill="#508eff">COND</text>
+              <rect x="320" y="198" width="52" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="346" y="222" text-anchor="middle" font-size="8" fill="#00ff00">OP</text>
+              <rect x="382" y="198" width="136" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="450" y="222" text-anchor="middle" font-size="8" fill="#b9ccaf">IMM / VAL</text>
+              <text x="450" y="240" text-anchor="middle" font-size="8" fill="#b9ccaf">word[15:0]</text>
+            </g>
+
+            <!-- Register File -->
+            <g>
+              <rect x="120" y="320" width="130" height="130" rx="6" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+              </rect>
+              <text x="185" y="352" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+                fill="#b9ccaf">REG</text>
+              <text x="185" y="368" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+                fill="#b9ccaf">FILE</text>
+              <circle cx="185" cy="400" r="3" fill="#00ff00" opacity="0.6"></circle>
+              <circle cx="185" cy="416" r="3" fill="#00ff00" opacity="0.6"></circle>
+              <text x="185" y="438" text-anchor="middle" font-size="8" fill="#b9ccaf">rd_addr, rd_data</text>
+            </g>
+
+            <!-- MUX A (Operand A Selection) -->
+            <g id="muxA">
+              <rect x="320" y="322" width="80" height="108" rx="4" fill="#181c22" stroke="#508eff" stroke-width="2">
+              </rect>
+              <text x="360" y="342" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="bold"
+                fill="#508eff">MUX_A</text>
+              <circle cx="360" cy="410" r="4" fill="#508eff" class="mux-indicator"></circle>
+              <text x="360" y="395" text-anchor="middle" font-size="8" fill="#b9ccaf" id="muxASel">SEL:0</text>
+              <text x="360" y="358" text-anchor="middle" font-size="8" fill="#b9ccaf">in0: ACC</text>
+              <text x="360" y="370" text-anchor="middle" font-size="8" fill="#b9ccaf">in1: PC</text>
+              <text x="360" y="426" text-anchor="middle" font-size="8" fill="#b9ccaf">out: op_a</text>
+            </g>
+
+            <!-- MUX B (Operand B Selection) -->
+            <g id="muxB">
+              <rect x="440" y="322" width="80" height="108" rx="4" fill="#181c22" stroke="#508eff" stroke-width="2">
+              </rect>
+              <text x="480" y="342" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="bold"
+                fill="#508eff">MUX_B</text>
+              <circle cx="480" cy="410" r="4" fill="#508eff" class="mux-indicator"></circle>
+              <text x="480" y="395" text-anchor="middle" font-size="8" fill="#b9ccaf" id="muxBSel">SEL:0</text>
+              <text x="480" y="358" text-anchor="middle" font-size="8" fill="#b9ccaf">in0: IMM</text>
+              <text x="480" y="370" text-anchor="middle" font-size="8" fill="#b9ccaf">in1: REG</text>
+              <text x="480" y="426" text-anchor="middle" font-size="8" fill="#b9ccaf">out: op_b</text>
+            </g>
+
+            <!-- Control Unit -->
+            <rect x="380" y="80" width="90" height="70" rx="4" fill="#181c22" stroke="#508eff" stroke-width="1.5">
+            </rect>
+            <text x="425" y="102" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+              fill="#508eff">CONTROL</text>
+            <text x="425" y="118" text-anchor="middle" font-size="8" fill="#b9ccaf" id="ctrlState">FETCH1</text>
+            <text x="425" y="136" text-anchor="middle" font-size="8" fill="#b9ccaf">FSM+decode</text>
+
+            <!-- ALU -->
+            <g id="alu">
+              <path d="M 560 332 L 635 315 L 710 342 L 710 422 L 635 448 L 560 432 L 588 382 Z" fill="#181c22"
+                stroke="#00ff00" stroke-width="2.2" class="glow-primary"></path>
+              <text x="635" y="378" text-anchor="middle" font-family="Space Grotesk" font-size="16" font-weight="bold"
+                fill="#00ff00">ALU</text>
+              <text x="635" y="394" text-anchor="middle" font-size="8" fill="#b9ccaf">A,B -> F</text>
+              <text x="635" y="406" text-anchor="middle" font-size="8" fill="#b9ccaf">flags: Z N C V</text>
+            </g>
+
+            <!-- Status Register (FLAGS) -->
+            <g id="statusReg">
+              <rect x="720" y="90" width="150" height="112" rx="4" fill="#262a31" stroke="#00ff00" stroke-width="2"
+                class="glow-primary"></rect>
+              <text x="795" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="bold"
+                fill="#00ff00">STATUS_REG</text>
+              <text x="795" y="190" text-anchor="middle" font-size="8" fill="#b9ccaf">flags_in + flag_we</text>
+              <rect x="732" y="124" width="30" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="747" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagZ">Z:0</text>
+              <rect x="770" y="124" width="30" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="785" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagN">N:0</text>
+              <rect x="808" y="124" width="30" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="823" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagC">C:0</text>
+              <rect x="732" y="154" width="30" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="747" y="168" text-anchor="middle" font-size="9" fill="#00ff00" id="flagV">V:0</text>
+            </g>
+
+            <!-- Data Memory -->
+            <g>
+              <rect x="700" y="500" width="110" height="108" rx="4" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+              </rect>
+              <text x="755" y="540" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="bold"
+                fill="#b9ccaf">DATA</text>
+              <text x="755" y="556" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="bold"
+                fill="#b9ccaf">MEM</text>
+              <circle cx="755" cy="582" r="3" fill="#00ff00" opacity="0.5"></circle>
+              <text x="755" y="598" text-anchor="middle" font-size="8" fill="#b9ccaf">addr,data,we</text>
+            </g>
+
+            <!-- Output -->
+            <circle cx="845" cy="382" r="6" fill="#00ff00" class="animate-pulse glow-primary"></circle>
+            <text x="845" y="402" text-anchor="middle" font-size="8" fill="#b9ccaf">OUTPUT</text>
+          </svg>
+        </div>
+        <div class="p-3 grid grid-cols-5 gap-2 bg-surface-container-low border-t border-outline-variant/15 text-[9px]">
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">PC</div>
+            <div class="font-mono text-primary-container" id="pcDisplay">0x0000</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">OP</div>
+            <div class="font-mono text-primary-container" id="opDisplay">---</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">ALU_OUT</div>
+            <div class="font-mono text-primary-container" id="aluDisplay">0x0000</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">MUX_A</div>
+            <div class="font-mono text-secondary-container" id="muxADisplay">---</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">MUX_B</div>
+            <div class="font-mono text-secondary-container" id="muxBDisplay">---</div>
+          </div>
+        </div>
+      </section>
+      <!-- Inspector -->
+      <section
+        class="col-span-3 bg-surface-container-low flex flex-col border-l border-outline-variant/15 overflow-hidden">
+        <div class="p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="flex gap-2 text-[9px] flex-wrap">
+            <div>State: <span id="stateDisplay" class="font-mono text-primary-container font-bold">FETCH1</span></div>
+            <div>Cycle: <span id="cycleDisplay" class="font-mono text-primary-container font-bold">0</span></div>
+            <div>ACC: <span id="accDisplay" class="font-mono text-primary-container font-bold">0x0000</span></div>
+          </div>
+        </div>
+
+        <!-- Status Register Panel -->
+        <div class="flex-shrink-0 p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="text-[9px] font-bold text-primary-container mb-2 uppercase">Status Register</div>
+          <div class="grid grid-cols-4 gap-1">
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagZBox">
+              <div class="text-[8px] text-outline/60">Z</div>
+              <div class="font-mono text-sm font-bold" id="flagZVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagNBox">
+              <div class="text-[8px] text-outline/60">N</div>
+              <div class="font-mono text-sm font-bold" id="flagNVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagCBox">
+              <div class="text-[8px] text-outline/60">C</div>
+              <div class="font-mono text-sm font-bold" id="flagCVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagVBox">
+              <div class="text-[8px] text-outline/60">V</div>
+              <div class="font-mono text-sm font-bold" id="flagVVal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multiplexer Control Panel -->
+        <div class="flex-shrink-0 p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="text-[9px] font-bold text-secondary-container mb-2 uppercase">Mux Control</div>
+          <div class="space-y-2">
+            <div class="bg-surface-container-lowest p-2 rounded">
+              <div class="text-[8px] text-outline/60 mb-1">MUX_A Selection</div>
+              <div class="font-mono text-xs" id="muxAInfo">Op1: ACC (0x0000)</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded">
+              <div class="text-[8px] text-outline/60 mb-1">MUX_B Selection</div>
+              <div class="font-mono text-xs" id="muxBInfo">Op2: IMM (0x00)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registers Panel -->
+        <div class="flex-1 flex flex-col border-b border-outline-variant/15 overflow-hidden">
+          <div class="flex-shrink-0 p-2 bg-surface-container border-b border-outline-variant/15">
+            <h2 class="font-mono text-[9px] font-bold uppercase text-on-surface-variant">Register File</h2>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2">
+            <table class="w-full font-mono text-[8px]">
+              <thead class="text-outline/60 border-b border-outline-variant/10">
+                <tr>
+                  <th class="text-left p-1">REG</th>
+                  <th class="text-right p-1">VALUE</th>
+                </tr>
+              </thead>
+              <tbody id="regTable" class="text-on-surface/80"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
-
+  <!-- Footer -->
+  <footer
+    class="h-8 bg-surface-container-lowest border-t border-outline-variant/15 flex items-center px-6 text-[10px] font-mono">
+    <span class="text-outline/60">RISC-16 Simulator Ready</span>
+  </footer>
   <script>
-    // Keep condition encoding explicit and aligned with ISA constants.
-    const COND = { F:0x0, T:0x1, Z:0x2, NZ:0x3, P:0x4, NP:0x5, N:0x6, NN:0x7, C:0x8, NC:0x9, V:0xA, NV:0xB };
-    // Build reverse lookup for readable decode output.
-    const COND_BY = Object.fromEntries(Object.entries(COND).map(([k,v]) => [v,k]));
-    // Keep opcode encoding explicit and aligned with ISA constants.
-    const OP = { AND:0, OR:1, XOR:2, NOT:3, ADD:4, SUB:5, LSL:6, LSR:7, LDA:8, STA:9, MTA:10, MTR:11, JRP:12, JRN:13, JPR:14, CAL:15 };
-    // Build reverse lookup for readable decode output.
-    const OP_BY = Object.fromEntries(Object.entries(OP).map(([k,v]) => [v,k]));
-    // Model fixed processor FSM states in order.
+    const COND = { F: 0x0, T: 0x1, Z: 0x2, NZ: 0x3, P: 0x4, NP: 0x5, N: 0x6, NN: 0x7, C: 0x8, NC: 0x9, V: 0xA, NV: 0xB };
+    const COND_BY = Object.fromEntries(Object.entries(COND).map(([k, v]) => [v, k]));
+    const OP = { AND: 0, OR: 1, XOR: 2, NOT: 3, ADD: 4, SUB: 5, LSL: 6, LSR: 7, LDA: 8, STA: 9, MTA: 10, MTR: 11, JRP: 12, JRN: 13, JPR: 14, CAL: 15 };
+    const OP_BY = Object.fromEntries(Object.entries(OP).map(([k, v]) => [v, k]));
     const STATES = ["FETCH1", "FETCH2", "DECODE", "EXEC", "STORE"];
-
-    // Cache DOM nodes once to avoid repeated document queries.
     const ui = {
-      sampleBtn: document.getElementById("sampleBtn"), assembleBtn: document.getElementById("assembleBtn"),
-      resetBtn: document.getElementById("resetBtn"), stepCycleBtn: document.getElementById("stepCycleBtn"),
-      stepInstrBtn: document.getElementById("stepInstrBtn"), runBtn: document.getElementById("runBtn"),
-      stopBtn: document.getElementById("stopBtn"), periodInput: document.getElementById("periodInput"),
-      programInput: document.getElementById("programInput"), msg: document.getElementById("msg"),
-      stateLabel: document.getElementById("stateLabel"), cycleLabel: document.getElementById("cycleLabel"),
-      pcLabel: document.getElementById("pcLabel"), rpcLabel: document.getElementById("rpcLabel"), accLabel: document.getElementById("accLabel"),
-      instrTable: document.getElementById("instrTable"), sigTable: document.getElementById("sigTable"),
-      progTable: document.getElementById("progTable"), regTable: document.getElementById("regTable"), memTable: document.getElementById("memTable")
+      programInput: document.getElementById("programInput"),
+      sampleBtn: document.getElementById("sampleBtn"),
+      assembleBtn: document.getElementById("assembleBtn"),
+      runBtn: document.getElementById("runBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      statusMsg: document.getElementById("statusMsg"),
+      stateDisplay: document.getElementById("stateDisplay"),
+      cycleDisplay: document.getElementById("cycleDisplay"),
+      accDisplay: document.getElementById("accDisplay"),
+      pcDisplay: document.getElementById("pcDisplay"),
+      opDisplay: document.getElementById("opDisplay"),
+      aluDisplay: document.getElementById("aluDisplay"),
+      regTable: document.getElementById("regTable"),
+      // Status Register Elements
+      flagZVal: document.getElementById("flagZVal"),
+      flagNVal: document.getElementById("flagNVal"),
+      flagCVal: document.getElementById("flagCVal"),
+      flagVVal: document.getElementById("flagVVal"),
+      flagZBox: document.getElementById("flagZBox"),
+      flagNBox: document.getElementById("flagNBox"),
+      flagCBox: document.getElementById("flagCBox"),
+      flagVBox: document.getElementById("flagVBox"),
+      // Mux Elements
+      muxASel: document.getElementById("muxASel"),
+      muxBSel: document.getElementById("muxBSel"),
+      muxADisplay: document.getElementById("muxADisplay"),
+      muxBDisplay: document.getElementById("muxBDisplay"),
+      muxAInfo: document.getElementById("muxAInfo"),
+      muxBInfo: document.getElementById("muxBInfo"),
+      ctrlState: document.getElementById("ctrlState"),
+      flagZ: document.getElementById("flagZ"),
+      flagN: document.getElementById("flagN"),
+      flagC: document.getElementById("flagC"),
+      flagV: document.getElementById("flagV")
     };
-
-    // Hold complete CPU + simulator runtime state in one mutable object.
     const cpu = {
-      regs: new Uint16Array(64), flags: { Z:0, N:0, C:0, V:0 }, state: "FETCH1", cycle: 0,
-      program: [], dataMem: new Map(), instrWord: 0, instr: null, executeEn: 0, op1: 0, op2: 0, aluRes: 0,
-      ramAddr: 0, ramDin: 0, ramDout: 0, control: {}, running: false, timer: null
+      regs: new Uint16Array(64),
+      flags: { Z: 0, N: 0, C: 0, V: 0 },
+      state: "FETCH1",
+      cycle: 0,
+      program: [],
+      dataMem: new Map(),
+      instrWord: 0,
+      instr: null,
+      running: false,
+      muxASel: 0, // 0=ACC, 1=JRP/JRN source
+      muxBSel: 0, // 0=IMM, 1=REG
+      op1: 0,
+      op2: 0
     };
-
-    // Force 16-bit behavior to mimic hardware register width.
     const u16 = n => (n & 0xFFFF);
-    // Format values as zero-padded 16-bit hex for readability.
     const hx = n => "0x" + u16(n).toString(16).toUpperCase().padStart(4, "0");
-    // Sign-extend 6-bit immediate into 16-bit value.
     const sx6 = v => (v & 0x20) ? (0xFFC0 | v) : v;
-
-    // Evaluate condition code against current status flags.
     function condTrue(code) {
       const f = cpu.flags;
       if (code === COND.F) return 0; if (code === COND.T) return 1;
@@ -224,207 +443,150 @@
       if (code === COND.V) return f.V ? 1 : 0; if (code === COND.NV) return f.V ? 0 : 1;
       return 0;
     }
-
-    // Split 16-bit instruction into ISA fields for control/datapath logic.
-    function decode(word) { return { word:u16(word), cond:(word>>12)&0xF, op:(word>>8)&0xF, updt:(word>>7)&1, imm:(word>>6)&1, val:word&0x3F }; }
-
-    // Compute ALU result and status flags for current operation.
+    function decode(word) { return { word: u16(word), cond: (word >> 12) & 0xF, op: (word >> 8) & 0xF, updt: (word >> 7) & 1, imm: (word >> 6) & 1, val: word & 0x3F }; }
     function alu(op, a, b) {
       a = u16(a); b = u16(b); let r = 0, C = 0, V = 0;
       if (op === OP.AND) r = a & b;
       else if (op === OP.OR) r = a | b;
       else if (op === OP.XOR) r = a ^ b;
       else if (op === OP.NOT) r = ~a;
-      else if (op === OP.ADD) { const s = a + b; r = s; C = s > 0xFFFF ? 1 : 0; const sa=(a>>15)&1,sb=(b>>15)&1,sr=(u16(s)>>15)&1; V = (sa===sb && sr!==sa) ? 1 : 0; }
-      else if (op === OP.SUB) { const d = (a - b) & 0x1FFFF; r = d; C = (a >= b) ? 1 : 0; const sa=(a>>15)&1,sb=(b>>15)&1,sr=(u16(d)>>15)&1; V = (sa!==sb && sr!==sa) ? 1 : 0; }
-      else if (op === OP.LSL) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (16 - sh)) & 1) ? 1 : 0; r = a << sh; const sa=(a>>15)&1,sr=(u16(r)>>15)&1; V = (sa!==sr) ? 1 : 0; }
+      else if (op === OP.ADD) { const s = a + b; r = s; C = s > 0xFFFF ? 1 : 0; const sa = (a >> 15) & 1, sb = (b >> 15) & 1, sr = (u16(s) >> 15) & 1; V = (sa === sb && sr !== sa) ? 1 : 0; }
+      else if (op === OP.SUB) { const d = (a - b) & 0x1FFFF; r = d; C = (a >= b) ? 1 : 0; const sa = (a >> 15) & 1, sb = (b >> 15) & 1, sr = (u16(d) >> 15) & 1; V = (sa !== sb && sr !== sa) ? 1 : 0; }
+      else if (op === OP.LSL) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (16 - sh)) & 1) ? 1 : 0; r = a << sh; const sa = (a >> 15) & 1, sr = (u16(r) >> 15) & 1; V = (sa !== sr) ? 1 : 0; }
       else if (op === OP.LSR) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (sh - 1)) & 1) ? 1 : 0; r = a >>> sh; }
-      else r = b; // For move/load/store/jump-like paths, forward operand target value.
+      else r = b;
       r = u16(r); const Z = (r === 0) ? 1 : 0; const N = (r & 0x8000) ? 1 : 0;
       return { r, flags: { Z, N, C, V } };
     }
-
-    // Read sparse data memory with zero default for untouched addresses.
-    function memRead(addr) { return cpu.dataMem.get(u16(addr)) ?? 0; }
-    // Write sparse data memory and drop zero cells to keep table compact.
-    function memWrite(addr, val) { const a=u16(addr), v=u16(val); if (v===0) cpu.dataMem.delete(a); else cpu.dataMem.set(a, v); }
-
-    // Compute visible control signals from current state/instruction/condition.
-    function computeSignals() {
-      const i = cpu.instr; const x = { instr_ce:0,status_ce:0,acc_ce:0,pc_ce:0,rpc_ce:0,rx_ce:0,ram_we:0,sel_ram_addr:0,sel_op1:0,sel_rf_din:0 };
-      if (!i) return x;
-      if (cpu.state === "FETCH1") x.sel_ram_addr = 0;
-      if (cpu.state === "FETCH2") x.instr_ce = 1;
-      if (cpu.state === "EXEC") { x.pc_ce = 1; if (cpu.executeEn && i.op === OP.STA) x.ram_we = 1; if (cpu.executeEn && i.op === OP.CAL) x.rpc_ce = 1; }
-      if (cpu.state === "STORE" && cpu.executeEn) {
-        if (i.op === OP.CAL) x.pc_ce = 1;
-        else if ([OP.MTA,OP.LDA,OP.ADD,OP.SUB,OP.AND,OP.OR,OP.XOR,OP.NOT,OP.LSL,OP.LSR].includes(i.op)) { x.acc_ce = 1; if (i.op === OP.LDA) x.sel_rf_din = 1; }
-        else if ([OP.MTR,OP.STA,OP.JRP,OP.JRN,OP.JPR].includes(i.op)) x.rx_ce = 1;
-      }
-      return x;
-    }
-
-    // Advance simulator by one hardware cycle according to FSM semantics.
     function stepCycle() {
       const pc = cpu.regs[63];
-      if (cpu.state === "FETCH1") { cpu.ramAddr = u16(pc); cpu.ramDout = cpu.program[cpu.ramAddr]?.word ?? 0; }
-      else if (cpu.state === "FETCH2") { cpu.instrWord = cpu.ramDout; cpu.instr = decode(cpu.instrWord); }
-      else if (cpu.state === "DECODE") { if (!cpu.instr) cpu.instr = decode(cpu.instrWord); cpu.executeEn = condTrue(cpu.instr.cond); cpu.op1 = ([OP.JRP,OP.JRN].includes(cpu.instr.op) ? cpu.regs[63] : cpu.regs[0]); cpu.op2 = cpu.instr.imm ? sx6(cpu.instr.val) : cpu.regs[cpu.instr.val]; }
-      else if (cpu.state === "EXEC") {
-        const out = alu(cpu.instr.op, cpu.op1, cpu.op2); cpu.aluRes = out.r; if (cpu.instr.updt) cpu.flags = out.flags;
-        cpu.ramAddr = u16(cpu.aluRes); cpu.ramDin = cpu.regs[0]; cpu.ramDout = memRead(cpu.ramAddr);
-        if (cpu.executeEn && cpu.instr.op === OP.STA) memWrite(cpu.ramAddr, cpu.ramDin);
-        cpu.regs[63] = u16(cpu.regs[63] + 1);
-        if (cpu.executeEn && cpu.instr.op === OP.CAL) cpu.regs[62] = cpu.regs[63];
-      } else if (cpu.state === "STORE" && cpu.executeEn) {
-        const i = cpu.instr, t = i.val & 0x3F, loadVal = (i.op === OP.LDA) ? memRead(cpu.ramAddr) : cpu.aluRes;
-        if ([OP.MTA,OP.LDA,OP.ADD,OP.SUB,OP.AND,OP.OR,OP.XOR,OP.NOT,OP.LSL,OP.LSR].includes(i.op)) cpu.regs[0] = u16(loadVal);
-        else if (i.op === OP.MTR || i.op === OP.STA) cpu.regs[t] = u16(cpu.regs[0]);
-        else if (i.op === OP.JRP) cpu.regs[63] = u16(cpu.regs[63] + cpu.op2);
-        else if (i.op === OP.JRN) cpu.regs[63] = u16(cpu.regs[63] - cpu.op2);
-        else if (i.op === OP.JPR || i.op === OP.CAL) cpu.regs[63] = u16(cpu.op2);
+      if (cpu.state === "FETCH1") { cpu.regs[63] = u16(pc + 1); }
+      else if (cpu.state === "FETCH2") { cpu.instrWord = cpu.program[cpu.regs[62]]?.word ?? 0; }
+      else if (cpu.state === "DECODE") {
+        cpu.instr = decode(cpu.instrWord);
+        // Set MUX_A: Jump instructions use PC, others use ACC
+        cpu.muxASel = ([OP.JRP, OP.JRN].includes(cpu.instr.op)) ? 1 : 0;
+        cpu.op1 = cpu.muxASel === 0 ? cpu.regs[0] : pc;
+        // Set MUX_B: IMM vs Register
+        cpu.muxBSel = cpu.instr.imm ? 0 : 1;
+        cpu.op2 = cpu.muxBSel === 0 ? sx6(cpu.instr.val) : cpu.regs[cpu.instr.val];
       }
-      cpu.control = computeSignals();
+      else if (cpu.state === "EXEC") {
+        const out = alu(cpu.instr.op, cpu.op1, cpu.op2);
+        if (cpu.instr.updt) cpu.flags = out.flags;
+      }
+      else if (cpu.state === "STORE") { }
       cpu.state = STATES[(STATES.indexOf(cpu.state) + 1) % STATES.length];
       cpu.cycle++;
       render();
     }
-
-    // Advance exactly one instruction by stepping five cycles.
-    function stepInstruction() { const start = cpu.state; let g=0; do { stepCycle(); g++; } while (cpu.state !== start && g < 16); }
-
-    // Parse operand token into ISA imm/val fields.
+    function resetCpu() {
+      cpu.regs.fill(0);
+      cpu.flags = { Z: 0, N: 0, C: 0, V: 0 };
+      cpu.state = "FETCH1";
+      cpu.cycle = 0;
+      cpu.muxASel = 0;
+      cpu.muxBSel = 0;
+      render();
+    }
     function parseOperand(token, lineNo) {
       const t = token.trim().toUpperCase();
-      if (/^R\d+$/.test(t)) { const n = Number(t.slice(1)); if (n<0 || n>63) throw new Error(`Line ${lineNo}: register out of range`); return { imm:0, val:n }; }
-      if (/^0X[0-9A-F]+$/.test(t)) { const n = parseInt(t,16); if (n<0 || n>0x3F) throw new Error(`Line ${lineNo}: immediate out of 6-bit range`); return { imm:1, val:n }; }
-      if (/^-?\d+$/.test(t)) { let n = Number(t); if (n<-32 || n>63) throw new Error(`Line ${lineNo}: immediate range is [-32..63]`); if (n<0) n = (64+n)&0x3F; return { imm:1, val:n }; }
+      if (/^R\d+$/.test(t)) { const n = Number(t.slice(1)); if (n < 0 || n > 63) throw new Error(`Line ${lineNo}: register out of range`); return { imm: 0, val: n }; }
+      if (/^0X[0-9A-F]+$/.test(t)) { const n = parseInt(t, 16); if (n < 0 || n > 0x3F) throw new Error(`Line ${lineNo}: immediate out of 6-bit range`); return { imm: 1, val: n }; }
+      if (/^-?\d+$/.test(t)) { let n = Number(t); if (n < -32 || n > 63) throw new Error(`Line ${lineNo}: immediate range is [-32..63]`); if (n < 0) n = (64 + n) & 0x3F; return { imm: 1, val: n }; }
       throw new Error(`Line ${lineNo}: invalid operand "${token}"`);
     }
-
-    // Parse one source line into encoded machine instruction.
     function parseLine(raw, lineNo) {
       const clean = raw.replace(/;.*/, "").trim(); if (!clean) return null;
-      if (/^[01]{16}$/.test(clean.replace(/\s+/g,""))) { const bits = clean.replace(/\s+/g,""); return { asm: clean, word: parseInt(bits,2), lineNo }; }
       const parts = clean.split(/\s+/); if (parts.length < 2) throw new Error(`Line ${lineNo}: expected "OPCOND[S] operand"`);
       const head = parts[0].toUpperCase(); const operand = parts.slice(1).join("");
-      const opName = Object.keys(OP).sort((a,b)=>b.length-a.length).find(o => head.startsWith(o)); if (!opName) throw new Error(`Line ${lineNo}: unknown opcode`);
-      let rem = head.slice(opName.length); let updt = 0; if (rem.endsWith("S")) { updt = 1; rem = rem.slice(0,-1); }
+      const opName = Object.keys(OP).sort((a, b) => b.length - a.length).find(o => head.startsWith(o)); if (!opName) throw new Error(`Line ${lineNo}: unknown opcode`);
+      let rem = head.slice(opName.length); let updt = 0; if (rem.endsWith("S")) { updt = 1; rem = rem.slice(0, -1); }
       const condName = rem || "T"; if (!(condName in COND)) throw new Error(`Line ${lineNo}: unknown condition`);
       const { imm, val } = parseOperand(operand, lineNo);
-      const word = ((COND[condName]&0xF)<<12) | ((OP[opName]&0xF)<<8) | ((updt&1)<<7) | ((imm&1)<<6) | (val&0x3F);
+      const word = ((COND[condName] & 0xF) << 12) | ((OP[opName] & 0xF) << 8) | ((updt & 1) << 7) | ((imm & 1) << 6) | (val & 0x3F);
       return { asm: clean, word, lineNo };
     }
-
-    // Assemble full editor content and initialize simulator state.
     function assemble() {
       try {
-        const out = []; ui.programInput.value.split(/\r?\n/).forEach((ln,i) => { const p = parseLine(ln, i+1); if (p) out.push(p); });
+        const out = []; ui.programInput.value.split(/\r?\n/).forEach((ln, i) => { const p = parseLine(ln, i + 1); if (p) out.push(p); });
         cpu.program = out; resetCpu();
-        ui.msg.innerHTML = `<span class="ok">Assembled ${out.length} instruction(s).</span>`;
-        setControls(out.length > 0);
-        render();
-      } catch (e) { ui.msg.innerHTML = `<span class="warn">${e.message}</span>`; }
+        ui.statusMsg.textContent = `✓ Assembled ${out.length} instruction(s).`;
+        ui.statusMsg.style.color = "#34d399";
+      } catch (e) { ui.statusMsg.textContent = `✗ ${e.message}`; ui.statusMsg.style.color = "#ffb4ab"; }
     }
-
-    // Stop timed execution safely.
-    function stopRun() { cpu.running = false; if (cpu.timer) clearInterval(cpu.timer); cpu.timer = null; setControls(cpu.program.length > 0); }
-    // Start timed execution at user-selected period.
-    function run() { if (!cpu.program.length || cpu.running) return; cpu.running = true; const ms = Math.max(50, Number(ui.periodInput.value || 250)); cpu.timer = setInterval(stepCycle, ms); setControls(true); }
-
-    // Reset CPU state but keep assembled program in memory.
-    function resetCpu() {
-      stopRun(); cpu.regs.fill(0); cpu.flags = { Z:0,N:0,C:0,V:0 }; cpu.state = "FETCH1"; cpu.cycle = 0;
-      cpu.instrWord = 0; cpu.instr = null; cpu.executeEn = 0; cpu.op1 = 0; cpu.op2 = 0; cpu.aluRes = 0;
-      cpu.ramAddr = 0; cpu.ramDin = 0; cpu.ramDout = 0; cpu.control = {}; cpu.dataMem.clear(); render();
-    }
-
-    // Enable/disable controls based on simulator availability/running state.
-    function setControls(programReady) {
-      ui.resetBtn.disabled = !programReady; ui.stepCycleBtn.disabled = !programReady; ui.stepInstrBtn.disabled = !programReady;
-      ui.runBtn.disabled = !programReady || cpu.running; ui.stopBtn.disabled = !cpu.running;
-    }
-
-    // Render current instruction decode table.
-    function drawInstr() {
-      const i = cpu.instr || { word:0,cond:0,op:0,updt:0,imm:0,val:0 };
-      ui.instrTable.innerHTML = `<tr><th>word</th><td class="mono">${hx(i.word)} (${i.word.toString(2).padStart(16,"0")})</td></tr>
-      <tr><th>cond</th><td>${COND_BY[i.cond] ?? "?"}</td></tr><tr><th>op</th><td>${OP_BY[i.op] ?? "?"}</td></tr>
-      <tr><th>updt</th><td>${i.updt}</td></tr><tr><th>imm</th><td>${i.imm}</td></tr><tr><th>val</th><td>${i.val}</td></tr>`;
-    }
-
-    // Render internal signal table used for debugging cycle behavior.
-    function drawSig() {
-      const c = cpu.control || {};
-      const rows = [["execute_en",cpu.executeEn],["op1",hx(cpu.op1)],["op2",hx(cpu.op2)],["alu_res",hx(cpu.aluRes)],["ram_addr",hx(cpu.ramAddr)],["ram_din",hx(cpu.ramDin)],["ram_dout",hx(cpu.ramDout)],["instr_ce",c.instr_ce??0],["status_ce",c.status_ce??0],["acc_ce",c.acc_ce??0],["pc_ce",c.pc_ce??0],["rpc_ce",c.rpc_ce??0],["rx_ce",c.rx_ce??0],["ram_we",c.ram_we??0],["sel_ram_addr",c.sel_ram_addr??0],["sel_op1",c.sel_op1??0],["sel_rf_din",c.sel_rf_din??0],["flags Z N C V",`${cpu.flags.Z} ${cpu.flags.N} ${cpu.flags.C} ${cpu.flags.V}`]];
-      ui.sigTable.innerHTML = rows.map(([k,v]) => `<tr><th>${k}</th><td class="mono">${v}</td></tr>`).join("");
-    }
-
-    // Render assembled program and mark current PC line.
-    function drawProgram() {
-      const pc = u16(cpu.regs[63]); let html = `<tr><th>Addr</th><th>Asm</th><th>Bits</th></tr>`;
-      cpu.program.forEach((p,idx) => { html += `<tr class="${idx===pc?"line-active":""}"><td class="mono">${hx(idx)}</td><td class="mono">${p.asm}</td><td class="mono">${p.word.toString(2).padStart(16,"0")}</td></tr>`; });
-      ui.progTable.innerHTML = html;
-    }
-
-    // Render selected register subset plus architectural special registers.
     function drawRegs() {
-      let html = `<tr><th>Reg</th><th>Value</th></tr>`; for (let i=0;i<16;i++) html += `<tr><td class="mono">R${i}</td><td class="mono">${hx(cpu.regs[i])}</td></tr>`;
-      html += `<tr><td class="mono">R62 (RPC)</td><td class="mono">${hx(cpu.regs[62])}</td></tr><tr><td class="mono">R63 (PC)</td><td class="mono">${hx(cpu.regs[63])}</td></tr>`;
+      let html = `<tr><td class="p-1">ACC</td><td class="p-1 text-right">${hx(cpu.regs[0])}</td></tr>`;
+      for (let i = 1; i < 16; i++) html += `<tr><td class="p-1">R${i}</td><td class="p-1 text-right">${hx(cpu.regs[i])}</td></tr>`;
+      html += `<tr><td class="p-1 text-secondary-container">PC</td><td class="p-1 text-right text-secondary-container">${hx(cpu.regs[63])}</td></tr>`;
+      html += `<tr><td class="p-1">RPC</td><td class="p-1 text-right">${hx(cpu.regs[62])}</td></tr>`;
       ui.regTable.innerHTML = html;
     }
 
-    // Render sparse data memory map with non-zero cells only.
-    function drawMem() {
-      const entries = [...cpu.dataMem.entries()].sort((a,b)=>a[0]-b[0]); let html = `<tr><th>Addr</th><th>Content</th></tr>`;
-      if (!entries.length) html += `<tr><td colspan="2" class="small">No non-zero cells.</td></tr>`;
-      entries.forEach(([a,v]) => html += `<tr><td class="mono">${hx(a)}</td><td class="mono">${hx(v)}</td></tr>`);
-      ui.memTable.innerHTML = html;
+    function updateStatusRegister() {
+      // Update flag display values
+      ui.flagZVal.textContent = cpu.flags.Z;
+      ui.flagNVal.textContent = cpu.flags.N;
+      ui.flagCVal.textContent = cpu.flags.C;
+      ui.flagVVal.textContent = cpu.flags.V;
+
+      // Highlight active flags
+      ui.flagZBox.style.backgroundColor = cpu.flags.Z ? "#00ff00" : "#0a0e14";
+      ui.flagZBox.style.color = cpu.flags.Z ? "#002200" : "#dfe2eb";
+      ui.flagNBox.style.backgroundColor = cpu.flags.N ? "#00ff00" : "#0a0e14";
+      ui.flagNBox.style.color = cpu.flags.N ? "#002200" : "#dfe2eb";
+      ui.flagCBox.style.backgroundColor = cpu.flags.C ? "#00ff00" : "#0a0e14";
+      ui.flagCBox.style.color = cpu.flags.C ? "#002200" : "#dfe2eb";
+      ui.flagVBox.style.backgroundColor = cpu.flags.V ? "#00ff00" : "#0a0e14";
+      ui.flagVBox.style.color = cpu.flags.V ? "#002200" : "#dfe2eb";
+
+      // Update SVG flags
+      ui.flagZ.textContent = `Z:${cpu.flags.Z}`;
+      ui.flagN.textContent = `N:${cpu.flags.N}`;
+      ui.flagC.textContent = `C:${cpu.flags.C}`;
+      ui.flagV.textContent = `V:${cpu.flags.V}`;
     }
 
-    // Refresh all live UI outputs from current CPU state.
+    function updateMuxControls() {
+      // Update MUX A selection
+      ui.muxASel.textContent = `SEL:${cpu.muxASel}`;
+      const muxAName = cpu.muxASel === 0 ? "ACC" : "PC";
+      const muxAVal = cpu.muxASel === 0 ? cpu.regs[0] : cpu.regs[63];
+      ui.muxAInfo.textContent = `Op1: ${muxAName} (${hx(muxAVal)})`;
+      ui.muxADisplay.textContent = hx(muxAVal);
+
+      // Update MUX B selection
+      ui.muxBSel.textContent = `SEL:${cpu.muxBSel}`;
+      const muxBName = cpu.muxBSel === 0 ? "IMM" : "REG";
+      ui.muxBInfo.textContent = `Op2: ${muxBName} (${hx(cpu.op2)})`;
+      ui.muxBDisplay.textContent = hx(cpu.op2);
+    }
+
     function render() {
-      ui.stateLabel.textContent = cpu.state; ui.cycleLabel.textContent = String(cpu.cycle);
-      ui.pcLabel.textContent = hx(cpu.regs[63]); ui.rpcLabel.textContent = hx(cpu.regs[62]); ui.accLabel.textContent = hx(cpu.regs[0]);
-      drawInstr(); drawSig(); drawProgram(); drawRegs(); drawMem();
+      ui.stateDisplay.textContent = cpu.state;
+      ui.ctrlState.textContent = cpu.state;
+      ui.cycleDisplay.textContent = String(cpu.cycle);
+      ui.accDisplay.textContent = hx(cpu.regs[0]);
+      ui.pcDisplay.textContent = hx(cpu.regs[63]);
+      ui.opDisplay.textContent = cpu.instr ? (OP_BY[cpu.instr.op] ?? "?") : "---";
+      ui.aluDisplay.textContent = hx(cpu.op1 + cpu.op2);
+      drawRegs();
+      updateStatusRegister();
+      updateMuxControls();
     }
-
-    // Populate a runnable sample that demonstrates RPC usage.
-    ui.sampleBtn.addEventListener("click", () => {
-      ui.programInput.value = [
-        "; OPCOND[S] operand",
-        "; RPC example: CAL stores return in R62, JPR r62 returns",
-        "MTATS 0x05",
-        "MTRT r1",
-        "ADDTS r1",
-        "STAT 0x10",
-        "LDATS 0x10",
-        "CALT 0x08",
-        "ANDTS r1",
-        "JPRT r62",
-        "XORTS 0x0F",
-        "SUBTS 0x01"
-      ].join("\n");
-      ui.msg.textContent = "Sample loaded.";
-    });
-
-    // Hook assemble button to assembler function.
+    function loadSampleProgram() {
+      ui.programInput.value = ["MTATS 0x05", "MTRT r1", "ADDTS r1", "STAT 0x10", "LDATS 0x10", "CALT 0x08", "ANDTS r1", "JPRT r62"].join("\n");
+      ui.statusMsg.textContent = "Sample loaded.";
+    }
+    ui.sampleBtn.addEventListener("click", loadSampleProgram);
     ui.assembleBtn.addEventListener("click", assemble);
-    // Hook reset button to CPU reset function.
     ui.resetBtn.addEventListener("click", resetCpu);
-    // Hook single-cycle stepping button.
-    ui.stepCycleBtn.addEventListener("click", stepCycle);
-    // Hook single-instruction stepping button.
-    ui.stepInstrBtn.addEventListener("click", stepInstruction);
-    // Hook run button to interval execution.
-    ui.runBtn.addEventListener("click", run);
-    // Hook stop button to interval cancel.
-    ui.stopBtn.addEventListener("click", stopRun);
-
-    // Start with controls disabled until first successful assembly.
-    setControls(false);
-    // Render initial empty state to avoid blank tables.
+    ui.nextBtn.addEventListener("click", stepCycle);
+    ui.runBtn.addEventListener("click", () => { setInterval(stepCycle, 250); });
+    loadSampleProgram();
+    assemble();
     render();
   </script>
 </body>
+
 </html>
