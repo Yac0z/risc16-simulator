@@ -1,0 +1,7 @@
+; Call and return using RPC register (r62)
+MTATS 0x02
+CALT 0x06
+JPRT r62
+MTATS 0x04
+ADDTS 0x01
+JPRT r62

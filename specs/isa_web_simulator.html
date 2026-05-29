@@ -40,6 +40,28 @@
     };
   </script>
   <style>
+    @keyframes regPulse {
+      0% {
+        background-color: rgba(0, 255, 0, 0.15);
+        box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.35);
+      }
+
+      100% {
+        background-color: rgba(0, 255, 0, 0.05);
+        box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+      }
+    }
+
+    .reg-changed {
+      animation: regPulse 0.7s ease-out;
+      border-color: rgba(0, 255, 0, 0.35);
+    }
+
+    .mem-changed {
+      animation: regPulse 0.7s ease-out;
+      border-color: rgba(80, 142, 255, 0.35);
+    }
+
     .glow-primary {
       filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.4));
     }
@@ -75,9 +97,18 @@
             class="w-full h-full bg-transparent text-on-surface border-none outline-none resize-none font-mono text-sm"
             placeholder="Enter assembly code..."></textarea>
         </div>
+        <div class="px-4 pb-2">
+          <div class="text-[9px] font-bold text-primary-container mb-1 uppercase">Current Instruction</div>
+          <div id="asmList" class="h-24 overflow-y-auto font-mono text-[10px] bg-surface-container-lowest rounded p-2">
+          </div>
+        </div>
         <div class="p-4 bg-surface-container flex flex-col gap-2">
           <button id="sampleBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Load
             Sample</button>
+          <button id="loadFileBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Load
+            .txt/.asm File</button>
+          <input id="programFileInput" type="file" accept=".txt,.asm,text/plain" class="hidden" />
+          <div class="text-[9px] text-on-surface-variant/80">Prepared files: specs/sample_programs/*.txt</div>
           <button id="assembleBtn"
             class="bg-primary-container text-on-primary-container p-2 rounded text-xs font-mono glow-primary">Assemble</button>
           <button id="runBtn"
@@ -364,6 +395,26 @@
             </table>
           </div>
         </div>
+
+        <!-- RAM Panel -->
+        <div class="flex-shrink-0 flex flex-col border-b border-outline-variant/15 max-h-60">
+          <div class="p-2 bg-surface-container border-b border-outline-variant/15">
+            <h2 class="font-mono text-[9px] font-bold uppercase text-secondary-container">RAM</h2>
+            <p class="text-[8px] text-on-surface-variant/70 mt-1">Edit a value, then tab away or press Enter to store
+              it.</p>
+          </div>
+          <div class="overflow-y-auto p-2">
+            <table class="w-full font-mono text-[8px]">
+              <thead class="text-outline/60 border-b border-outline-variant/10">
+                <tr>
+                  <th class="text-left p-1">ADDR</th>
+                  <th class="text-right p-1">VALUE</th>
+                </tr>
+              </thead>
+              <tbody id="ramTable" class="text-on-surface/80"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -381,6 +432,8 @@
     const ui = {
       programInput: document.getElementById("programInput"),
       sampleBtn: document.getElementById("sampleBtn"),
+      loadFileBtn: document.getElementById("loadFileBtn"),
+      programFileInput: document.getElementById("programFileInput"),
       assembleBtn: document.getElementById("assembleBtn"),
       runBtn: document.getElementById("runBtn"),
       nextBtn: document.getElementById("nextBtn"),
@@ -414,9 +467,14 @@
       flagN: document.getElementById("flagN"),
       flagC: document.getElementById("flagC"),
       flagV: document.getElementById("flagV")
+      ,
+      asmList: document.getElementById("asmList"),
+      ramTable: document.getElementById("ramTable")
     };
     const cpu = {
       regs: new Uint16Array(64),
+      prevRegs: new Uint16Array(64),
+      prevRamView: new Uint16Array(32),
       flags: { Z: 0, N: 0, C: 0, V: 0 },
       state: "FETCH1",
       cycle: 0,
@@ -424,15 +482,32 @@
       dataMem: new Map(),
       instrWord: 0,
       instr: null,
+      memAddr: 0,
+      memData: 0,
       running: false,
       muxASel: 0, // 0=ACC, 1=JRP/JRN source
       muxBSel: 0, // 0=IMM, 1=REG
       op1: 0,
-      op2: 0
+      op2: 0,
+      lastAluOut: 0,
+      runTimer: null
     };
     const u16 = n => (n & 0xFFFF);
     const hx = n => "0x" + u16(n).toString(16).toUpperCase().padStart(4, "0");
     const sx6 = v => (v & 0x20) ? (0xFFC0 | v) : v;
+    const RAM_VIEW_ROWS = 32;
+    const ramAddrLabel = addr => "0x" + u16(addr).toString(16).toUpperCase().padStart(2, "0");
+    const getRamWord = addr => cpu.dataMem.get(u16(addr)) ?? 0;
+    const setRamWord = (addr, value) => {
+      cpu.dataMem.set(u16(addr), u16(value));
+    };
+    const parseRamValue = raw => {
+      const text = raw.trim();
+      if (!text) return 0;
+      if (/^0X[0-9A-F]+$/i.test(text)) return parseInt(text, 16);
+      if (/^-?\d+$/.test(text)) return Number(text);
+      throw new Error(`invalid RAM value "${raw}"`);
+    };
     function condTrue(code) {
       const f = cpu.flags;
       if (code === COND.F) return 0; if (code === COND.T) return 1;
@@ -460,10 +535,16 @@
     }
     function stepCycle() {
       const pc = cpu.regs[63];
-      if (cpu.state === "FETCH1") { cpu.regs[63] = u16(pc + 1); }
+      if (cpu.state === "FETCH1") {
+        // Fetch stage latches current PC into RPC, then increments PC.
+        cpu.regs[62] = pc;
+        cpu.regs[63] = u16(pc + 1);
+      }
       else if (cpu.state === "FETCH2") { cpu.instrWord = cpu.program[cpu.regs[62]]?.word ?? 0; }
       else if (cpu.state === "DECODE") {
         cpu.instr = decode(cpu.instrWord);
+        cpu.memAddr = cpu.instr.val;
+        cpu.memData = getRamWord(cpu.memAddr);
         // Set MUX_A: Jump instructions use PC, others use ACC
         cpu.muxASel = ([OP.JRP, OP.JRN].includes(cpu.instr.op)) ? 1 : 0;
         cpu.op1 = cpu.muxASel === 0 ? cpu.regs[0] : pc;
@@ -472,10 +553,24 @@
         cpu.op2 = cpu.muxBSel === 0 ? sx6(cpu.instr.val) : cpu.regs[cpu.instr.val];
       }
       else if (cpu.state === "EXEC") {
-        const out = alu(cpu.instr.op, cpu.op1, cpu.op2);
-        if (cpu.instr.updt) cpu.flags = out.flags;
+        if (cpu.instr.op === OP.LDA) {
+          cpu.lastAluOut = getRamWord(cpu.memAddr);
+        } else {
+          const out = alu(cpu.instr.op, cpu.op1, cpu.op2);
+          cpu.lastAluOut = out.r;
+          if (cpu.instr.updt) cpu.flags = out.flags;
+        }
       }
-      else if (cpu.state === "STORE") { }
+      else if (cpu.state === "STORE") {
+        if (cpu.instr) {
+          if (cpu.instr.op === OP.STA) {
+            setRamWord(cpu.memAddr, cpu.regs[0]);
+          }
+          if ([OP.MTA, OP.MTR, OP.LDA, OP.AND, OP.OR, OP.XOR, OP.NOT, OP.ADD, OP.SUB, OP.LSL, OP.LSR].includes(cpu.instr.op)) {
+            cpu.regs[0] = cpu.lastAluOut;
+          }
+        }
+      }
       cpu.state = STATES[(STATES.indexOf(cpu.state) + 1) % STATES.length];
       cpu.cycle++;
       render();
@@ -487,6 +582,9 @@
       cpu.cycle = 0;
       cpu.muxASel = 0;
       cpu.muxBSel = 0;
+      cpu.lastAluOut = 0;
+      cpu.prevRegs.fill(0);
+      stopRun();
       render();
     }
     function parseOperand(token, lineNo) {
@@ -516,11 +614,68 @@
       } catch (e) { ui.statusMsg.textContent = `✗ ${e.message}`; ui.statusMsg.style.color = "#ffb4ab"; }
     }
     function drawRegs() {
-      let html = `<tr><td class="p-1">ACC</td><td class="p-1 text-right">${hx(cpu.regs[0])}</td></tr>`;
-      for (let i = 1; i < 16; i++) html += `<tr><td class="p-1">R${i}</td><td class="p-1 text-right">${hx(cpu.regs[i])}</td></tr>`;
-      html += `<tr><td class="p-1 text-secondary-container">PC</td><td class="p-1 text-right text-secondary-container">${hx(cpu.regs[63])}</td></tr>`;
-      html += `<tr><td class="p-1">RPC</td><td class="p-1 text-right">${hx(cpu.regs[62])}</td></tr>`;
+      const rowClass = (changed, labelClass = "") => {
+        const base = `border-b border-outline-variant/5 ${labelClass}`.trim();
+        return changed ? `${base} reg-changed` : base;
+      };
+      const valueClass = changed => `p-1 text-right ${changed ? "reg-changed text-primary-container font-bold" : ""}`.trim();
+
+      let html = `<tr class="${rowClass(cpu.regs[0] !== cpu.prevRegs[0])}"><td class="p-1">ACC</td><td class="${valueClass(cpu.regs[0] !== cpu.prevRegs[0])}">${hx(cpu.regs[0])}</td></tr>`;
+      for (let i = 1; i < 16; i++) {
+        const changed = cpu.regs[i] !== cpu.prevRegs[i];
+        html += `<tr class="${rowClass(changed)}"><td class="p-1">R${i}</td><td class="${valueClass(changed)}">${hx(cpu.regs[i])}</td></tr>`;
+      }
+      {
+        const changed = cpu.regs[63] !== cpu.prevRegs[63];
+        html += `<tr class="${rowClass(changed, "text-secondary-container")}"><td class="p-1 text-secondary-container">PC</td><td class="${valueClass(changed)} text-secondary-container">${hx(cpu.regs[63])}</td></tr>`;
+      }
+      {
+        const changed = cpu.regs[62] !== cpu.prevRegs[62];
+        html += `<tr class="${rowClass(changed)}"><td class="p-1">RPC</td><td class="${valueClass(changed)}">${hx(cpu.regs[62])}</td></tr>`;
+      }
       ui.regTable.innerHTML = html;
+      cpu.prevRegs.set(cpu.regs);
+    }
+
+    function drawRam() {
+      const rows = [];
+      for (let addr = 0; addr < RAM_VIEW_ROWS; addr++) {
+        const current = getRamWord(addr);
+        const previous = cpu.prevRamView[addr] ?? 0;
+        const changed = current !== previous;
+        rows.push(`
+          <tr class="border-b border-outline-variant/5 ${changed ? "mem-changed" : ""}">
+            <td class="p-1 text-on-surface-variant">${ramAddrLabel(addr)}</td>
+            <td class="p-1 text-right">
+              <input
+                data-ram-addr="${addr}"
+                class="w-full bg-transparent text-right outline-none border border-transparent rounded px-1 py-0.5 ${changed ? "mem-changed text-secondary-container font-bold" : "text-on-surface"}"
+                value="${hx(current)}"
+                spellcheck="false"
+              />
+            </td>
+          </tr>`);
+      }
+      ui.ramTable.innerHTML = rows.join("");
+      cpu.prevRamView = new Uint16Array(Array.from({ length: RAM_VIEW_ROWS }, (_, addr) => getRamWord(addr)));
+    }
+
+    function renderAsmList() {
+      if (!cpu.program.length) {
+        ui.asmList.innerHTML = `<div class="text-on-surface/50">No assembled instructions.</div>`;
+        return;
+      }
+      const currentIdx = cpu.regs[62];
+      ui.asmList.innerHTML = cpu.program.map((inst, idx) => {
+        const active = idx === currentIdx;
+        const baseCls = "px-1 py-0.5 rounded mb-0.5";
+        const activeCls = active ? "bg-primary-container text-black font-bold" : "text-on-surface";
+        const marker = active ? "▶" : " ";
+        return `<div class="${baseCls} ${activeCls}">${marker} L${inst.lineNo.toString().padStart(2, "0")}: ${inst.asm}</div>`;
+      }).join("");
+
+      const activeRow = ui.asmList.querySelector("div.bg-primary-container");
+      if (activeRow) activeRow.scrollIntoView({ block: "nearest" });
     }
 
     function updateStatusRegister() {
@@ -569,20 +724,96 @@
       ui.accDisplay.textContent = hx(cpu.regs[0]);
       ui.pcDisplay.textContent = hx(cpu.regs[63]);
       ui.opDisplay.textContent = cpu.instr ? (OP_BY[cpu.instr.op] ?? "?") : "---";
-      ui.aluDisplay.textContent = hx(cpu.op1 + cpu.op2);
+      ui.aluDisplay.textContent = hx(cpu.lastAluOut);
       drawRegs();
       updateStatusRegister();
       updateMuxControls();
+      renderAsmList();
+      drawRam();
     }
     function loadSampleProgram() {
       ui.programInput.value = ["MTATS 0x05", "MTRT r1", "ADDTS r1", "STAT 0x10", "LDATS 0x10", "CALT 0x08", "ANDTS r1", "JPRT r62"].join("\n");
       ui.statusMsg.textContent = "Sample loaded.";
     }
+
+    async function loadProgramFromFile(file) {
+      if (!file) return;
+      const fileName = file.name || "(unnamed)";
+      try {
+        const text = await file.text();
+        ui.programInput.value = text.replace(/\r\n/g, "\n");
+        ui.statusMsg.textContent = `Loaded ${fileName}.`;
+        ui.statusMsg.style.color = "#34d399";
+        assemble();
+      } catch (err) {
+        ui.statusMsg.textContent = `✗ Failed to read ${fileName}: ${err?.message || err}`;
+        ui.statusMsg.style.color = "#ffb4ab";
+      } finally {
+        // Clear input so picking the same file again still fires change.
+        ui.programFileInput.value = "";
+      }
+    }
+
     ui.sampleBtn.addEventListener("click", loadSampleProgram);
+    ui.loadFileBtn.addEventListener("click", () => ui.programFileInput.click());
+    ui.programFileInput.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      loadProgramFromFile(file);
+    });
     ui.assembleBtn.addEventListener("click", assemble);
     ui.resetBtn.addEventListener("click", resetCpu);
     ui.nextBtn.addEventListener("click", stepCycle);
-    ui.runBtn.addEventListener("click", () => { setInterval(stepCycle, 250); });
+    ui.ramTable.addEventListener("change", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const addr = Number(input.dataset.ramAddr);
+      if (!Number.isFinite(addr)) return;
+      try {
+        const value = parseRamValue(input.value);
+        setRamWord(addr, value);
+        input.value = hx(getRamWord(addr));
+        ui.statusMsg.textContent = `RAM[${ramAddrLabel(addr)}] updated.`;
+        ui.statusMsg.style.color = "#34d399";
+        render();
+      } catch (err) {
+        ui.statusMsg.textContent = `✗ ${err?.message || err}`;
+        ui.statusMsg.style.color = "#ffb4ab";
+        input.value = hx(getRamWord(addr));
+      }
+    });
+
+    function stopRun() {
+      if (cpu.runTimer) {
+        clearInterval(cpu.runTimer);
+        cpu.runTimer = null;
+      }
+      cpu.running = false;
+      ui.runBtn.textContent = "Run";
+    }
+
+    function startRun() {
+      if (cpu.running) return;
+      if (!cpu.program.length) {
+        ui.statusMsg.textContent = "✗ Assemble a program first.";
+        ui.statusMsg.style.color = "#ffb4ab";
+        return;
+      }
+      cpu.running = true;
+      ui.runBtn.textContent = "Stop";
+      cpu.runTimer = setInterval(() => {
+        // Stop when next fetch would be outside the assembled program.
+        if (cpu.state === "FETCH1" && cpu.regs[63] >= cpu.program.length) {
+          stopRun();
+          return;
+        }
+        stepCycle();
+      }, 250);
+    }
+
+    ui.runBtn.addEventListener("click", () => {
+      if (cpu.running) stopRun();
+      else startRun();
+    });
     loadSampleProgram();
     assemble();
     render();

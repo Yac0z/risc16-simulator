@@ -1,0 +1,9 @@
+; Basic arithmetic flow
+MTATS 0x03
+MTRT r1
+ADDTS r1
+MTRT r2
+SUBTS r2
+ANDTS 0x0F
+ORTS 0x30
+XORTS 0x0A
