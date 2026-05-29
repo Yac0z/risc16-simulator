@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KINETIC_ARCH_v1.0 | RISC-16 Simulator</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary-container": "#00ff00",
+            "secondary-container": "#508eff",
+            "background": "#10141a",
+            "surface": "#10141a",
+            "surface-container": "#1c2026",
+            "surface-container-low": "#181c22",
+            "surface-container-highest": "#31353c",
+            "surface-container-high": "#262a31",
+            "surface-container-lowest": "#0a0e14",
+            "on-surface": "#dfe2eb",
+            "on-surface-variant": "#b9ccaf",
+            "outline-variant": "#3b4b35"
+          },
+          fontFamily: {
+            headline: ["Space Grotesk"],
+            body: ["Inter"],
+            mono: ["JetBrains Mono"]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 255, 0, 0.45) rgba(10, 14, 20, 0.95);
+      color-scheme: dark;
+    }
+
+    *::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+      background: transparent;
+    }
+
+    *::-webkit-scrollbar-button {
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+      border: 0 !important;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+    }
+
+    *::-webkit-scrollbar-button:single-button,
+    *::-webkit-scrollbar-button:double-button,
+    *::-webkit-scrollbar-button:horizontal:decrement,
+    *::-webkit-scrollbar-button:horizontal:increment,
+    *::-webkit-scrollbar-button:vertical:decrement,
+    *::-webkit-scrollbar-button:vertical:increment {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+      background: transparent !important;
+      border: 0 !important;
+      opacity: 0 !important;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent !important;
+      border-radius: 999px;
+      box-shadow: none !important;
+    }
+
+    *::-webkit-scrollbar-track-piece {
+      background: transparent !important;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(0, 255, 0, 0.65), rgba(80, 142, 255, 0.55));
+      border: 3px solid rgba(10, 14, 20, 0.72);
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px rgba(223, 226, 235, 0.08), 0 0 10px rgba(0, 255, 0, 0.08);
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(0, 255, 0, 0.82), rgba(80, 142, 255, 0.72));
+      box-shadow: inset 0 0 0 1px rgba(223, 226, 235, 0.12), 0 0 12px rgba(0, 255, 0, 0.16);
+    }
+
+    *::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(180deg, rgba(0, 255, 0, 0.92), rgba(80, 142, 255, 0.82));
+    }
+
+    *::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    body::-webkit-scrollbar,
+    textarea::-webkit-scrollbar,
+    .overflow-auto::-webkit-scrollbar,
+    .overflow-y-auto::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent;
+    }
+
+    body,
+    textarea,
+    .overflow-auto,
+    .overflow-y-auto {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    body::-webkit-scrollbar-button,
+    textarea::-webkit-scrollbar-button,
+    .overflow-auto::-webkit-scrollbar-button,
+    .overflow-y-auto::-webkit-scrollbar-button,
+    body::-webkit-scrollbar-button:single-button,
+    textarea::-webkit-scrollbar-button:single-button,
+    .overflow-auto::-webkit-scrollbar-button:single-button,
+    .overflow-y-auto::-webkit-scrollbar-button:single-button,
+    body::-webkit-scrollbar-button:double-button,
+    textarea::-webkit-scrollbar-button:double-button,
+    .overflow-auto::-webkit-scrollbar-button:double-button,
+    .overflow-y-auto::-webkit-scrollbar-button:double-button,
+    body::-webkit-scrollbar-button:horizontal:decrement,
+    textarea::-webkit-scrollbar-button:horizontal:decrement,
+    .overflow-auto::-webkit-scrollbar-button:horizontal:decrement,
+    .overflow-y-auto::-webkit-scrollbar-button:horizontal:decrement,
+    body::-webkit-scrollbar-button:horizontal:increment,
+    textarea::-webkit-scrollbar-button:horizontal:increment,
+    .overflow-auto::-webkit-scrollbar-button:horizontal:increment,
+    .overflow-y-auto::-webkit-scrollbar-button:horizontal:increment,
+    body::-webkit-scrollbar-button:vertical:decrement,
+    textarea::-webkit-scrollbar-button:vertical:decrement,
+    .overflow-auto::-webkit-scrollbar-button:vertical:decrement,
+    .overflow-y-auto::-webkit-scrollbar-button:vertical:decrement,
+    body::-webkit-scrollbar-button:vertical:increment,
+    textarea::-webkit-scrollbar-button:vertical:increment,
+    .overflow-auto::-webkit-scrollbar-button:vertical:increment,
+    .overflow-y-auto::-webkit-scrollbar-button:vertical:increment {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+      background: transparent !important;
+      border: 0 !important;
+      opacity: 0 !important;
+    }
+
+    body::-webkit-scrollbar-track,
+    textarea::-webkit-scrollbar-track,
+    .overflow-auto::-webkit-scrollbar-track,
+    .overflow-y-auto::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track-piece,
+    textarea::-webkit-scrollbar-track-piece,
+    .overflow-auto::-webkit-scrollbar-track-piece,
+    .overflow-y-auto::-webkit-scrollbar-track-piece,
+    body::-webkit-scrollbar-corner,
+    textarea::-webkit-scrollbar-corner,
+    .overflow-auto::-webkit-scrollbar-corner,
+    .overflow-y-auto::-webkit-scrollbar-corner {
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    .scroll-hint-host {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .scroll-hint-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .scroll-hint-layer.is-visible {
+      opacity: 1;
+    }
+
+    .scroll-hint-fade {
+      position: absolute;
+      opacity: 0;
+      transition: opacity 180ms ease;
+    }
+
+    .scroll-hint-layer.can-scroll-up .scroll-hint-top,
+    .scroll-hint-layer.can-scroll-down .scroll-hint-bottom,
+    .scroll-hint-layer.can-scroll-left .scroll-hint-left,
+    .scroll-hint-layer.can-scroll-right .scroll-hint-right {
+      opacity: 1;
+    }
+
+    .scroll-hint-top {
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: linear-gradient(to bottom, rgba(16, 20, 26, 0.95), rgba(16, 20, 26, 0));
+    }
+
+    .scroll-hint-bottom {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 18px;
+      background: linear-gradient(to top, rgba(16, 20, 26, 0.95), rgba(16, 20, 26, 0));
+    }
+
+    .scroll-hint-left {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 18px;
+      background: linear-gradient(to right, rgba(16, 20, 26, 0.95), rgba(16, 20, 26, 0));
+    }
+
+    .scroll-hint-right {
+      top: 0;
+      bottom: 0;
+      right: 0;
+      width: 18px;
+      background: linear-gradient(to left, rgba(16, 20, 26, 0.95), rgba(16, 20, 26, 0));
+    }
+
+    .scroll-hint-arrow {
+      position: absolute;
+      color: #00ff00;
+      text-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+      opacity: 0;
+      transition: opacity 180ms ease, transform 180ms ease;
+      font-family: "Material Symbols Outlined";
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .scroll-hint-layer.can-scroll-up .scroll-hint-arrow-up,
+    .scroll-hint-layer.can-scroll-down .scroll-hint-arrow-down,
+    .scroll-hint-layer.can-scroll-left .scroll-hint-arrow-left,
+    .scroll-hint-layer.can-scroll-right .scroll-hint-arrow-right {
+      opacity: 0.9;
+    }
+
+    .scroll-hint-arrow-up {
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-hint-arrow-down {
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .scroll-hint-arrow-left {
+      left: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .scroll-hint-arrow-right {
+      right: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    @keyframes regPulse {
+      0% {
+        background-color: rgba(0, 255, 0, 0.15);
+        box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.35);
+      }
+
+      100% {
+        background-color: rgba(0, 255, 0, 0.05);
+        box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+      }
+    }
+
+    .reg-changed {
+      animation: regPulse 0.7s ease-out;
+      border-color: rgba(0, 255, 0, 0.35);
+    }
+
+    .mem-changed {
+      animation: regPulse 0.7s ease-out;
+      border-color: rgba(80, 142, 255, 0.35);
+    }
+
+    .glow-primary {
+      filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.4));
+    }
+
+    .glow-secondary {
+      filter: drop-shadow(0 0 8px rgba(80, 142, 255, 0.4));
+    }
+
+    .data-bus text,
+    .ctrl-bus text {
+      stroke: none;
+      stroke-width: 0;
+      paint-order: fill;
+    }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-body overflow-hidden h-screen flex flex-col">
+  <!-- Header -->
+  <header class="bg-[#10141a] z-50 flex justify-between items-center px-6 h-16 border-b border-outline-variant/15">
+    <span class="text-xl font-bold text-[#00ff00]">KINETIC_ARCH_v1.0</span>
+  </header>
+  <!-- Main Container -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="bg-[#181c22] w-20 border-r border-[#3b4b35]/15"></aside>
+    <!-- Main Grid -->
+    <main class="flex-1 grid grid-cols-12 gap-px bg-outline-variant/10 overflow-hidden">
+      <!-- Code Editor -->
+      <section class="col-span-3 bg-surface-container-low flex flex-col border-r border-outline-variant/15">
+        <div class="flex-1 p-4 relative scroll-hint-host">
+          <textarea id="programInput"
+            class="w-full h-full bg-transparent text-on-surface border-none outline-none resize-none font-mono text-sm"
+            data-scroll-hint="y" data-scroll-hint-host="parent" placeholder="Enter assembly code..."></textarea>
+        </div>
+        <div class="px-4 pb-2">
+          <div class="text-[9px] font-bold text-primary-container mb-1 uppercase">Current Instruction</div>
+          <div id="asmList"
+            class="h-24 overflow-y-auto font-mono text-[10px] bg-surface-container-lowest rounded p-2 scroll-hint-host"
+            data-scroll-hint="y" data-scroll-hint-host="self">
+          </div>
+        </div>
+        <div class="p-4 bg-surface-container flex flex-col gap-2">
+          <button id="sampleBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Load
+            Sample</button>
+          <button id="loadFileBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Load
+            .txt/.asm File</button>
+          <input id="programFileInput" type="file" accept=".txt,.asm,text/plain" class="hidden" />
+          <div class="text-[9px] text-on-surface-variant/80">Prepared files: specs/sample_programs/*.txt</div>
+          <button id="assembleBtn"
+            class="bg-primary-container text-on-primary-container p-2 rounded text-xs font-mono glow-primary">Assemble</button>
+          <button id="runBtn"
+            class="bg-primary-container text-on-primary-container p-2 rounded text-xs font-mono">Run</button>
+          <button id="nextBtn" class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Next
+            Cycle</button>
+          <button id="resetBtn"
+            class="bg-surface-container-high text-on-surface p-2 rounded text-xs font-mono">Reset</button>
+          <div id="statusMsg" class="text-[10px] font-mono p-2 rounded bg-surface-container-highest text-on-surface/60">
+          </div>
+        </div>
+      </section>
+      <!-- Schematic -->
+      <section class="col-span-6 bg-surface-dim flex flex-col overflow-hidden">
+        <div class="p-3 border-b border-outline-variant/15 flex justify-between items-center text-[10px]">
+          <span class="font-mono text-primary-container font-bold">CORE_CANVAS_01 :: SCHEMATIC</span>
+          <div class="flex gap-3">
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-primary-container glow-primary animate-pulse"></div><span
+                class="text-on-surface-variant">DATA_BUS</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-2 h-2 rounded-full bg-secondary-container"></div><span
+                class="text-on-surface-variant">CTRL_SIG</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-6 overflow-auto scroll-hint-host" data-scroll-hint="both"
+          data-scroll-hint-host="self">
+          <svg viewBox="0 0 900 650" class="w-full h-full drop-shadow-2xl" style="min-width:600px;">
+            <!-- Data Bus Wires -->
+            <g class="data-bus" stroke="#00ff00" stroke-width="2.2" fill="none" opacity="0.8">
+              <!-- Instruction path: RAM -> IR -->
+              <path d="M 150 95 H 220 V 150 H 250" class="glow-primary"></path>
+              <text x="152" y="144" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">instr[15:0]</text>
+
+              <!-- MUX_A in0: ACC from RegFile (port y=350) -->
+              <path d="M 250 350 H 322" class="glow-primary"></path>
+              <text x="256" y="344" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">ACC</text>
+              <circle cx="322" cy="350" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+              <!-- MUX_A in1: PC stub (port y=402) -->
+              <path d="M 296 402 H 322" class="glow-primary"></path>
+              <text x="293" y="398" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                text-anchor="end" fill="#c9ffd2">PC</text>
+              <circle cx="322" cy="402" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+              <!-- MUX_B in0: IMM from IR sign-extend (port y=410) -->
+              <path d="M 530 228 H 620 V 410 H 456" class="glow-primary"></path>
+              <text x="535" y="222" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">imm_sext</text>
+              <circle cx="456" cy="410" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+              <!-- MUX_B in1: rd_data from RegFile (port y=462) -->
+              <path d="M 250 440 H 300 V 462 H 456" class="glow-primary"></path>
+              <text x="256" y="434" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">rd_data</text>
+              <circle cx="456" cy="462" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+
+              <!-- MUX outputs to ALU — entry points at midpoints of ALU angled left edges -->
+              <path d="M 400 372 H 420 V 355 H 575" class="glow-primary"></path>
+              <text x="490" y="349" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">op_a</text>
+              <path d="M 538 434 H 545 V 405 H 575" class="glow-primary"></path>
+              <text x="548" y="399" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">op_b</text>
+
+              <!-- ALU input connection nodes at geometric midpoints of angled left edges -->
+              <circle cx="575" cy="355" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+              <circle cx="575" cy="405" r="3" fill="#00ff00" stroke="none" class="glow-primary"></circle>
+
+              <!-- ALU result fanout -->
+              <path d="M 710 380 H 760 V 500 H 700" class="glow-primary"></path>
+              <text x="716" y="374" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">alu_result</text>
+              <path d="M 760 380 H 800 V 190 H 720" class="glow-primary"></path>
+              <text x="806" y="274" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#c9ffd2">flags_bus</text>
+            </g>
+
+            <!-- Control Signals (blue) -->
+            <g class="ctrl-bus" stroke="#508eff" stroke-width="1.6" fill="none" opacity="0.7">
+              <path d="M 470 112 H 800 V 140" class="glow-secondary"></path>
+              <text x="644" y="106" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">flag_we</text>
+
+              <path d="M 470 122 H 360 V 322" class="glow-secondary"></path>
+              <text x="365" y="286" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">sel_a</text>
+
+              <path d="M 470 132 H 600 V 380 H 456" class="glow-secondary"></path>
+              <text x="606" y="286" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">sel_b</text>
+
+              <path d="M 470 142 H 635 V 335" class="glow-secondary"></path>
+              <text x="566" y="136" font-family="JetBrains Mono" font-size="10" font-weight="700"
+                fill="#cfe0ff">alu_op[3:0]</text>
+            </g>
+
+            <!-- RAM -->
+            <rect x="40" y="60" width="110" height="72" rx="4" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+            </rect>
+            <text x="95" y="95" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="bold"
+              fill="#b9ccaf">RAM</text>
+            <text x="95" y="112" text-anchor="middle" font-size="8" fill="#b9ccaf">addr: PC</text>
+
+            <!-- Instruction Register -->
+            <g>
+              <rect x="250" y="160" width="280" height="88" rx="4" fill="#262a31" stroke="#3b4b35" stroke-width="1">
+              </rect>
+              <text x="262" y="180" font-family="JetBrains Mono" font-size="9" fill="#00ff00"
+                font-weight="bold">INSTRUCTION_REG</text>
+              <rect x="272" y="198" width="38" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="291" y="222" text-anchor="middle" font-size="8" fill="#508eff">COND</text>
+              <rect x="320" y="198" width="52" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="346" y="222" text-anchor="middle" font-size="8" fill="#00ff00">OP</text>
+              <rect x="382" y="198" width="136" height="38" rx="2" fill="#0a0e14"></rect>
+              <text x="450" y="222" text-anchor="middle" font-size="8" fill="#b9ccaf">IMM / VAL</text>
+              <text x="450" y="240" text-anchor="middle" font-size="8" fill="#b9ccaf">word[15:0]</text>
+            </g>
+
+            <!-- Register File -->
+            <g>
+              <rect x="120" y="320" width="130" height="130" rx="6" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+              </rect>
+              <text x="185" y="352" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+                fill="#b9ccaf">REG</text>
+              <text x="185" y="368" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+                fill="#b9ccaf">FILE</text>
+              <circle cx="185" cy="400" r="3" fill="#00ff00" opacity="0.6"></circle>
+              <circle cx="185" cy="416" r="3" fill="#00ff00" opacity="0.6"></circle>
+              <text x="185" y="438" text-anchor="middle" font-size="8" fill="#b9ccaf">rd_addr, rd_data</text>
+            </g>
+
+            <!-- MUX A (Operand A Selection) -->
+            <g id="muxA">
+              <polygon points="322,322 376,322 404,348 404,404 376,430 322,430 334,376" fill="#181c22" stroke="#508eff"
+                stroke-width="2" class="glow-secondary"></polygon>
+              <path d="M 334 322 L 334 430" stroke="#508eff" stroke-width="1" opacity="0.35"></path>
+              <!-- Input tick marks at exact port Y positions -->
+              <line x1="322" y1="350" x2="336" y2="350" stroke="#508eff" stroke-width="1" opacity="0.6"></line>
+              <line x1="322" y1="402" x2="336" y2="402" stroke="#508eff" stroke-width="1" opacity="0.6"></line>
+              <text x="365" y="336" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="bold"
+                fill="#508eff">MUX_A</text>
+              <!-- Port index markers aligned with tick lines -->
+              <text x="344" y="354" text-anchor="middle" font-size="8" fill="#508eff">0</text>
+              <text x="344" y="406" text-anchor="middle" font-size="8" fill="#508eff">1</text>
+              <circle cx="374" cy="376" r="4" fill="#508eff" class="mux-indicator"></circle>
+              <text x="365" y="393" text-anchor="middle" font-size="8" fill="#b9ccaf" id="muxASel">SEL:0</text>
+            </g>
+
+            <!-- MUX B (Operand B Selection) -->
+            <g id="muxB">
+              <polygon points="456,380 510,380 538,406 538,462 510,488 456,488 468,434" fill="#181c22" stroke="#508eff"
+                stroke-width="2" class="glow-secondary"></polygon>
+              <path d="M 468 380 L 468 488" stroke="#508eff" stroke-width="1" opacity="0.35"></path>
+              <!-- Input tick marks at exact port Y positions -->
+              <line x1="456" y1="410" x2="470" y2="410" stroke="#508eff" stroke-width="1" opacity="0.6"></line>
+              <line x1="456" y1="462" x2="470" y2="462" stroke="#508eff" stroke-width="1" opacity="0.6"></line>
+              <text x="500" y="395" text-anchor="middle" font-family="JetBrains Mono" font-size="9" font-weight="bold"
+                fill="#508eff">MUX_B</text>
+              <!-- Port index markers aligned with tick lines -->
+              <text x="478" y="414" text-anchor="middle" font-size="8" fill="#508eff">0</text>
+              <text x="478" y="466" text-anchor="middle" font-size="8" fill="#508eff">1</text>
+              <circle cx="508" cy="436" r="4" fill="#508eff" class="mux-indicator"></circle>
+              <text x="500" y="453" text-anchor="middle" font-size="8" fill="#b9ccaf" id="muxBSel">SEL:0</text>
+            </g>
+
+            <!-- Control Unit -->
+            <rect x="380" y="80" width="90" height="70" rx="4" fill="#181c22" stroke="#508eff" stroke-width="1.5">
+            </rect>
+            <text x="425" y="102" text-anchor="middle" font-family="Space Grotesk" font-size="10" font-weight="bold"
+              fill="#508eff">CONTROL</text>
+            <text x="425" y="118" text-anchor="middle" font-size="8" fill="#b9ccaf" id="ctrlState">FETCH1</text>
+            <text x="425" y="136" text-anchor="middle" font-size="8" fill="#b9ccaf">FSM+decode</text>
+
+            <!-- ALU -->
+            <g id="alu">
+              <path d="M 560 330 L 630 330 L 710 380 L 630 430 L 560 430 L 590 380 Z" fill="#181c22"
+                stroke="#00ff00" stroke-width="2.2" class="glow-primary"></path>
+              <text x="645" y="375" text-anchor="middle" font-family="Space Grotesk" font-size="16" font-weight="bold"
+                fill="#00ff00">ALU</text>
+              <text x="645" y="391" text-anchor="middle" font-size="8" fill="#b9ccaf">A,B -> F</text>
+              <text x="645" y="403" text-anchor="middle" font-size="8" fill="#b9ccaf">flags: Z N C V</text>
+            </g>
+
+            <!-- Status Register (FLAGS) -->
+            <g id="statusReg">
+              <rect x="720" y="90" width="150" height="112" rx="4" fill="#262a31" stroke="#00ff00" stroke-width="2"
+                class="glow-primary"></rect>
+              <text x="795" y="112" text-anchor="middle" font-family="JetBrains Mono" font-size="10" font-weight="bold"
+                fill="#00ff00">STATUS_REG</text>
+              <rect x="730" y="124" width="28" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="744" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagZ">Z:0</text>
+              <rect x="764" y="124" width="28" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="778" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagN">N:0</text>
+              <rect x="798" y="124" width="28" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="812" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagC">C:0</text>
+              <rect x="832" y="124" width="28" height="20" rx="2" fill="#0a0e14"></rect>
+              <text x="846" y="138" text-anchor="middle" font-size="9" fill="#00ff00" id="flagV">V:0</text>
+              <text x="795" y="168" text-anchor="middle" font-size="8" fill="#b9ccaf">flags_in + flag_we</text>
+            </g>
+
+            <!-- Data Memory -->
+            <g>
+              <rect x="700" y="500" width="110" height="108" rx="4" fill="#181c22" stroke="#3b4b35" stroke-width="1.5">
+              </rect>
+              <text x="755" y="540" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="bold"
+                fill="#b9ccaf">DATA</text>
+              <text x="755" y="556" text-anchor="middle" font-family="Space Grotesk" font-size="11" font-weight="bold"
+                fill="#b9ccaf">MEM</text>
+              <circle cx="755" cy="582" r="3" fill="#00ff00" opacity="0.5"></circle>
+              <text x="755" y="598" text-anchor="middle" font-size="8" fill="#b9ccaf">addr,data,we</text>
+            </g>
+
+            <!-- Output -->
+            <circle cx="845" cy="382" r="6" fill="#00ff00" class="animate-pulse glow-primary"></circle>
+            <text x="845" y="402" text-anchor="middle" font-size="8" fill="#b9ccaf">OUTPUT</text>
+          </svg>
+        </div>
+        <div class="p-3 grid grid-cols-5 gap-2 bg-surface-container-low border-t border-outline-variant/15 text-[9px]">
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">PC</div>
+            <div class="font-mono text-primary-container" id="pcDisplay">0x0000</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">OP</div>
+            <div class="font-mono text-primary-container" id="opDisplay">---</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">ALU_OUT</div>
+            <div class="font-mono text-primary-container" id="aluDisplay">0x0000</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">MUX_A</div>
+            <div class="font-mono text-secondary-container" id="muxADisplay">---</div>
+          </div>
+          <div class="bg-surface-container-lowest p-1.5 rounded">
+            <div class="text-outline/60">MUX_B</div>
+            <div class="font-mono text-secondary-container" id="muxBDisplay">---</div>
+          </div>
+        </div>
+      </section>
+      <!-- Inspector -->
+      <section
+        class="col-span-3 bg-surface-container-low flex flex-col border-l border-outline-variant/15 overflow-hidden">
+        <div class="p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="flex gap-2 text-[9px] flex-wrap">
+            <div>State: <span id="stateDisplay" class="font-mono text-primary-container font-bold">FETCH1</span></div>
+            <div>Cycle: <span id="cycleDisplay" class="font-mono text-primary-container font-bold">0</span></div>
+            <div>ACC: <span id="accDisplay" class="font-mono text-primary-container font-bold">0x0000</span></div>
+          </div>
+        </div>
+
+        <!-- Status Register Panel -->
+        <div class="flex-shrink-0 p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="text-[9px] font-bold text-primary-container mb-2 uppercase">Status Register</div>
+          <div class="grid grid-cols-4 gap-1">
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagZBox">
+              <div class="text-[8px] text-outline/60">Z</div>
+              <div class="font-mono text-sm font-bold" id="flagZVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagNBox">
+              <div class="text-[8px] text-outline/60">N</div>
+              <div class="font-mono text-sm font-bold" id="flagNVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagCBox">
+              <div class="text-[8px] text-outline/60">C</div>
+              <div class="font-mono text-sm font-bold" id="flagCVal">0</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded text-center" id="flagVBox">
+              <div class="text-[8px] text-outline/60">V</div>
+              <div class="font-mono text-sm font-bold" id="flagVVal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multiplexer Control Panel -->
+        <div class="flex-shrink-0 p-3 bg-surface-container border-b border-outline-variant/15">
+          <div class="text-[9px] font-bold text-secondary-container mb-2 uppercase">Mux Control</div>
+          <div class="space-y-2">
+            <div class="bg-surface-container-lowest p-2 rounded">
+              <div class="text-[8px] text-outline/60 mb-1">MUX_A Selection</div>
+              <div class="font-mono text-xs" id="muxAInfo">Op1: ACC (0x0000)</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2 rounded">
+              <div class="text-[8px] text-outline/60 mb-1">MUX_B Selection</div>
+              <div class="font-mono text-xs" id="muxBInfo">Op2: IMM (0x00)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registers Panel -->
+        <div class="flex-1 flex flex-col border-b border-outline-variant/15 overflow-hidden">
+          <div class="flex-shrink-0 p-2 bg-surface-container border-b border-outline-variant/15">
+            <h2 class="font-mono text-[9px] font-bold uppercase text-on-surface-variant">Register File</h2>
+          </div>
+          <div class="flex-1 overflow-y-auto p-2 scroll-hint-host" data-scroll-hint="y" data-scroll-hint-host="self">
+            <table class="w-full font-mono text-[8px]">
+              <thead class="text-outline/60 border-b border-outline-variant/10">
+                <tr>
+                  <th class="text-left p-1">REG</th>
+                  <th class="text-right p-1">VALUE</th>
+                </tr>
+              </thead>
+              <tbody id="regTable" class="text-on-surface/80"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- RAM Panel -->
+        <div class="flex-shrink-0 flex flex-col border-b border-outline-variant/15 max-h-60">
+          <div class="p-2 bg-surface-container border-b border-outline-variant/15">
+            <h2 class="font-mono text-[9px] font-bold uppercase text-secondary-container">RAM</h2>
+            <p class="text-[8px] text-on-surface-variant/70 mt-1">Edit a value, then tab away or press Enter to store
+              it.</p>
+          </div>
+          <div class="overflow-y-auto p-2 scroll-hint-host" data-scroll-hint="y" data-scroll-hint-host="self">
+            <table class="w-full font-mono text-[8px]">
+              <thead class="text-outline/60 border-b border-outline-variant/10">
+                <tr>
+                  <th class="text-left p-1">ADDR</th>
+                  <th class="text-right p-1">VALUE</th>
+                </tr>
+              </thead>
+              <tbody id="ramTable" class="text-on-surface/80"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <!-- Footer -->
+  <footer
+    class="h-8 bg-surface-container-lowest border-t border-outline-variant/15 flex items-center px-6 text-[10px] font-mono">
+    <span class="text-outline/60">RISC-16 Simulator Ready</span>
+  </footer>
+  <script>
+    const COND = { F: 0x0, T: 0x1, Z: 0x2, NZ: 0x3, P: 0x4, NP: 0x5, N: 0x6, NN: 0x7, C: 0x8, NC: 0x9, V: 0xA, NV: 0xB };
+    const COND_BY = Object.fromEntries(Object.entries(COND).map(([k, v]) => [v, k]));
+    const OP = { AND: 0, OR: 1, XOR: 2, NOT: 3, ADD: 4, SUB: 5, LSL: 6, LSR: 7, LDA: 8, STA: 9, MTA: 10, MTR: 11, JRP: 12, JRN: 13, JPR: 14, CAL: 15 };
+    const OP_BY = Object.fromEntries(Object.entries(OP).map(([k, v]) => [v, k]));
+    const STATES = ["FETCH1", "FETCH2", "DECODE", "EXEC", "STORE"];
+    const ui = {
+      programInput: document.getElementById("programInput"),
+      sampleBtn: document.getElementById("sampleBtn"),
+      loadFileBtn: document.getElementById("loadFileBtn"),
+      programFileInput: document.getElementById("programFileInput"),
+      assembleBtn: document.getElementById("assembleBtn"),
+      runBtn: document.getElementById("runBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      statusMsg: document.getElementById("statusMsg"),
+      stateDisplay: document.getElementById("stateDisplay"),
+      cycleDisplay: document.getElementById("cycleDisplay"),
+      accDisplay: document.getElementById("accDisplay"),
+      pcDisplay: document.getElementById("pcDisplay"),
+      opDisplay: document.getElementById("opDisplay"),
+      aluDisplay: document.getElementById("aluDisplay"),
+      regTable: document.getElementById("regTable"),
+      // Status Register Elements
+      flagZVal: document.getElementById("flagZVal"),
+      flagNVal: document.getElementById("flagNVal"),
+      flagCVal: document.getElementById("flagCVal"),
+      flagVVal: document.getElementById("flagVVal"),
+      flagZBox: document.getElementById("flagZBox"),
+      flagNBox: document.getElementById("flagNBox"),
+      flagCBox: document.getElementById("flagCBox"),
+      flagVBox: document.getElementById("flagVBox"),
+      // Mux Elements
+      muxASel: document.getElementById("muxASel"),
+      muxBSel: document.getElementById("muxBSel"),
+      muxADisplay: document.getElementById("muxADisplay"),
+      muxBDisplay: document.getElementById("muxBDisplay"),
+      muxAInfo: document.getElementById("muxAInfo"),
+      muxBInfo: document.getElementById("muxBInfo"),
+      ctrlState: document.getElementById("ctrlState"),
+      flagZ: document.getElementById("flagZ"),
+      flagN: document.getElementById("flagN"),
+      flagC: document.getElementById("flagC"),
+      flagV: document.getElementById("flagV")
+      ,
+      asmList: document.getElementById("asmList"),
+      ramTable: document.getElementById("ramTable")
+    };
+    const scrollHintTargets = [];
+    const cpu = {
+      regs: new Uint16Array(64),
+      prevRegs: new Uint16Array(64),
+      prevRamView: new Uint16Array(32),
+      flags: { Z: 0, N: 0, C: 0, V: 0 },
+      state: "FETCH1",
+      cycle: 0,
+      program: [],
+      dataMem: new Map(),
+      instrWord: 0,
+      instr: null,
+      memAddr: 0,
+      memData: 0,
+      running: false,
+      muxASel: 0, // 0=ACC, 1=JRP/JRN source
+      muxBSel: 0, // 0=IMM, 1=REG
+      op1: 0,
+      op2: 0,
+      lastAluOut: 0,
+      runTimer: null
+    };
+    const u16 = n => (n & 0xFFFF);
+    const hx = n => "0x" + u16(n).toString(16).toUpperCase().padStart(4, "0");
+    const sx6 = v => (v & 0x20) ? (0xFFC0 | v) : v;
+    const RAM_VIEW_ROWS = 32;
+    const ramAddrLabel = addr => "0x" + u16(addr).toString(16).toUpperCase().padStart(2, "0");
+    const getRamWord = addr => cpu.dataMem.get(u16(addr)) ?? 0;
+    const setRamWord = (addr, value) => {
+      cpu.dataMem.set(u16(addr), u16(value));
+    };
+    const parseRamValue = raw => {
+      const text = raw.trim();
+      if (!text) return 0;
+      if (/^0X[0-9A-F]+$/i.test(text)) return parseInt(text, 16);
+      if (/^-?\d+$/.test(text)) return Number(text);
+      throw new Error(`invalid RAM value "${raw}"`);
+    };
+
+    function setupScrollHints() {
+      const targets = document.querySelectorAll("[data-scroll-hint]");
+      targets.forEach(target => {
+        if (target.dataset.scrollHintReady === "1") return;
+        const axis = target.dataset.scrollHint || "y";
+        const hostMode = target.dataset.scrollHintHost || "self";
+        const host = hostMode === "parent" ? target.parentElement : target;
+        if (!host) return;
+
+        host.classList.add("scroll-hint-host");
+        if (getComputedStyle(host).position === "static") {
+          host.style.position = "relative";
+        }
+
+        const layer = document.createElement("div");
+        layer.className = "scroll-hint-layer";
+        layer.innerHTML = `
+          <div class="scroll-hint-fade scroll-hint-top"></div>
+          <div class="scroll-hint-fade scroll-hint-bottom"></div>
+          <div class="scroll-hint-fade scroll-hint-left"></div>
+          <div class="scroll-hint-fade scroll-hint-right"></div>
+          <div class="scroll-hint-arrow scroll-hint-arrow-up">keyboard_arrow_up</div>
+          <div class="scroll-hint-arrow scroll-hint-arrow-down">keyboard_arrow_down</div>
+          <div class="scroll-hint-arrow scroll-hint-arrow-left">keyboard_arrow_left</div>
+          <div class="scroll-hint-arrow scroll-hint-arrow-right">keyboard_arrow_right</div>
+        `;
+        host.appendChild(layer);
+
+        const scrollTarget = target;
+        const update = () => {
+          const canScrollY = (axis === "y" || axis === "both") && scrollTarget.scrollHeight > scrollTarget.clientHeight + 1;
+          const canScrollX = (axis === "x" || axis === "both") && scrollTarget.scrollWidth > scrollTarget.clientWidth + 1;
+          const scrollTop = scrollTarget.scrollTop || 0;
+          const scrollLeft = scrollTarget.scrollLeft || 0;
+          const maxTop = Math.max(0, scrollTarget.scrollHeight - scrollTarget.clientHeight);
+          const maxLeft = Math.max(0, scrollTarget.scrollWidth - scrollTarget.clientWidth);
+          const showUp = canScrollY && scrollTop > 2;
+          const showDown = canScrollY && scrollTop < maxTop - 2;
+          const showLeft = canScrollX && scrollLeft > 2;
+          const showRight = canScrollX && scrollLeft < maxLeft - 2;
+
+          layer.classList.toggle("is-visible", showUp || showDown || showLeft || showRight);
+          layer.classList.toggle("can-scroll-up", showUp);
+          layer.classList.toggle("can-scroll-down", showDown);
+          layer.classList.toggle("can-scroll-left", showLeft);
+          layer.classList.toggle("can-scroll-right", showRight);
+        };
+
+        scrollTarget.addEventListener("scroll", update, { passive: true });
+        const resizeObserver = new ResizeObserver(update);
+        resizeObserver.observe(scrollTarget);
+        resizeObserver.observe(host);
+        scrollHintTargets.push({ target, update, resizeObserver });
+        target.dataset.scrollHintReady = "1";
+        requestAnimationFrame(update);
+      });
+
+      window.addEventListener("resize", () => {
+        scrollHintTargets.forEach(entry => entry.update());
+      });
+    }
+
+    function condTrue(code) {
+      const f = cpu.flags;
+      if (code === COND.F) return 0; if (code === COND.T) return 1;
+      if (code === COND.Z) return f.Z ? 1 : 0; if (code === COND.NZ) return f.Z ? 0 : 1;
+      if (code === COND.P) return (!f.Z && !f.N) ? 1 : 0; if (code === COND.NP) return (f.Z || f.N) ? 1 : 0;
+      if (code === COND.N) return f.N ? 1 : 0; if (code === COND.NN) return f.N ? 0 : 1;
+      if (code === COND.C) return f.C ? 1 : 0; if (code === COND.NC) return f.C ? 0 : 1;
+      if (code === COND.V) return f.V ? 1 : 0; if (code === COND.NV) return f.V ? 0 : 1;
+      return 0;
+    }
+    function decode(word) { return { word: u16(word), cond: (word >> 12) & 0xF, op: (word >> 8) & 0xF, updt: (word >> 7) & 1, imm: (word >> 6) & 1, val: word & 0x3F }; }
+    function alu(op, a, b) {
+      a = u16(a); b = u16(b); let r = 0, C = 0, V = 0;
+      if (op === OP.AND) r = a & b;
+      else if (op === OP.OR) r = a | b;
+      else if (op === OP.XOR) r = a ^ b;
+      else if (op === OP.NOT) r = ~a;
+      else if (op === OP.ADD) { const s = a + b; r = s; C = s > 0xFFFF ? 1 : 0; const sa = (a >> 15) & 1, sb = (b >> 15) & 1, sr = (u16(s) >> 15) & 1; V = (sa === sb && sr !== sa) ? 1 : 0; }
+      else if (op === OP.SUB) { const d = (a - b) & 0x1FFFF; r = d; C = (a >= b) ? 1 : 0; const sa = (a >> 15) & 1, sb = (b >> 15) & 1, sr = (u16(d) >> 15) & 1; V = (sa !== sb && sr !== sa) ? 1 : 0; }
+      else if (op === OP.LSL) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (16 - sh)) & 1) ? 1 : 0; r = a << sh; const sa = (a >> 15) & 1, sr = (u16(r) >> 15) & 1; V = (sa !== sr) ? 1 : 0; }
+      else if (op === OP.LSR) { const sh = b & 0x1F; if (sh > 0) C = ((a >> (sh - 1)) & 1) ? 1 : 0; r = a >>> sh; }
+      else r = b;
+      r = u16(r); const Z = (r === 0) ? 1 : 0; const N = (r & 0x8000) ? 1 : 0;
+      return { r, flags: { Z, N, C, V } };
+    }
+    function stepCycle() {
+      const pc = cpu.regs[63];
+      if (cpu.state === "FETCH1") {
+        // Fetch stage latches current PC into RPC, then increments PC.
+        cpu.regs[62] = pc;
+        cpu.regs[63] = u16(pc + 1);
+      }
+      else if (cpu.state === "FETCH2") { cpu.instrWord = cpu.program[cpu.regs[62]]?.word ?? 0; }
+      else if (cpu.state === "DECODE") {
+        cpu.instr = decode(cpu.instrWord);
+        cpu.memAddr = cpu.instr.val;
+        cpu.memData = getRamWord(cpu.memAddr);
+        // Set MUX_A: Jump instructions use PC, others use ACC
+        cpu.muxASel = ([OP.JRP, OP.JRN].includes(cpu.instr.op)) ? 1 : 0;
+        cpu.op1 = cpu.muxASel === 0 ? cpu.regs[0] : pc;
+        // Set MUX_B: IMM vs Register
+        cpu.muxBSel = cpu.instr.imm ? 0 : 1;
+        cpu.op2 = cpu.muxBSel === 0 ? sx6(cpu.instr.val) : cpu.regs[cpu.instr.val];
+      }
+      else if (cpu.state === "EXEC") {
+        if (cpu.instr.op === OP.LDA) {
+          cpu.lastAluOut = getRamWord(cpu.memAddr);
+        } else {
+          const out = alu(cpu.instr.op, cpu.op1, cpu.op2);
+          cpu.lastAluOut = out.r;
+          if (cpu.instr.updt) cpu.flags = out.flags;
+        }
+      }
+      else if (cpu.state === "STORE") {
+        if (cpu.instr) {
+          if (cpu.instr.op === OP.STA) {
+            setRamWord(cpu.memAddr, cpu.regs[0]);
+          }
+          if ([OP.MTA, OP.MTR, OP.LDA, OP.AND, OP.OR, OP.XOR, OP.NOT, OP.ADD, OP.SUB, OP.LSL, OP.LSR].includes(cpu.instr.op)) {
+            cpu.regs[0] = cpu.lastAluOut;
+          }
+        }
+      }
+      cpu.state = STATES[(STATES.indexOf(cpu.state) + 1) % STATES.length];
+      cpu.cycle++;
+      render();
+    }
+    function resetCpu() {
+      cpu.regs.fill(0);
+      cpu.flags = { Z: 0, N: 0, C: 0, V: 0 };
+      cpu.state = "FETCH1";
+      cpu.cycle = 0;
+      cpu.muxASel = 0;
+      cpu.muxBSel = 0;
+      cpu.lastAluOut = 0;
+      cpu.prevRegs.fill(0);
+      stopRun();
+      render();
+    }
+    function parseOperand(token, lineNo) {
+      const t = token.trim().toUpperCase();
+      if (/^R\d+$/.test(t)) { const n = Number(t.slice(1)); if (n < 0 || n > 63) throw new Error(`Line ${lineNo}: register out of range`); return { imm: 0, val: n }; }
+      if (/^0X[0-9A-F]+$/.test(t)) { const n = parseInt(t, 16); if (n < 0 || n > 0x3F) throw new Error(`Line ${lineNo}: immediate out of 6-bit range`); return { imm: 1, val: n }; }
+      if (/^-?\d+$/.test(t)) { let n = Number(t); if (n < -32 || n > 63) throw new Error(`Line ${lineNo}: immediate range is [-32..63]`); if (n < 0) n = (64 + n) & 0x3F; return { imm: 1, val: n }; }
+      throw new Error(`Line ${lineNo}: invalid operand "${token}"`);
+    }
+    function parseLine(raw, lineNo) {
+      const clean = raw.replace(/;.*/, "").trim(); if (!clean) return null;
+      const parts = clean.split(/\s+/); if (parts.length < 2) throw new Error(`Line ${lineNo}: expected "OPCOND[S] operand"`);
+      const head = parts[0].toUpperCase(); const operand = parts.slice(1).join("");
+      const opName = Object.keys(OP).sort((a, b) => b.length - a.length).find(o => head.startsWith(o)); if (!opName) throw new Error(`Line ${lineNo}: unknown opcode`);
+      let rem = head.slice(opName.length); let updt = 0; if (rem.endsWith("S")) { updt = 1; rem = rem.slice(0, -1); }
+      const condName = rem || "T"; if (!(condName in COND)) throw new Error(`Line ${lineNo}: unknown condition`);
+      const { imm, val } = parseOperand(operand, lineNo);
+      const word = ((COND[condName] & 0xF) << 12) | ((OP[opName] & 0xF) << 8) | ((updt & 1) << 7) | ((imm & 1) << 6) | (val & 0x3F);
+      return { asm: clean, word, lineNo };
+    }
+    function assemble() {
+      try {
+        const out = []; ui.programInput.value.split(/\r?\n/).forEach((ln, i) => { const p = parseLine(ln, i + 1); if (p) out.push(p); });
+        cpu.program = out; resetCpu();
+        ui.statusMsg.textContent = `✓ Assembled ${out.length} instruction(s).`;
+        ui.statusMsg.style.color = "#34d399";
+      } catch (e) { ui.statusMsg.textContent = `✗ ${e.message}`; ui.statusMsg.style.color = "#ffb4ab"; }
+    }
+    function drawRegs() {
+      const rowClass = (changed, labelClass = "") => {
+        const base = `border-b border-outline-variant/5 ${labelClass}`.trim();
+        return changed ? `${base} reg-changed` : base;
+      };
+      const valueClass = changed => `p-1 text-right ${changed ? "reg-changed text-primary-container font-bold" : ""}`.trim();
+
+      let html = `<tr class="${rowClass(cpu.regs[0] !== cpu.prevRegs[0])}"><td class="p-1">ACC</td><td class="${valueClass(cpu.regs[0] !== cpu.prevRegs[0])}">${hx(cpu.regs[0])}</td></tr>`;
+      for (let i = 1; i < 16; i++) {
+        const changed = cpu.regs[i] !== cpu.prevRegs[i];
+        html += `<tr class="${rowClass(changed)}"><td class="p-1">R${i}</td><td class="${valueClass(changed)}">${hx(cpu.regs[i])}</td></tr>`;
+      }
+      {
+        const changed = cpu.regs[63] !== cpu.prevRegs[63];
+        html += `<tr class="${rowClass(changed, "text-secondary-container")}"><td class="p-1 text-secondary-container">PC</td><td class="${valueClass(changed)} text-secondary-container">${hx(cpu.regs[63])}</td></tr>`;
+      }
+      {
+        const changed = cpu.regs[62] !== cpu.prevRegs[62];
+        html += `<tr class="${rowClass(changed)}"><td class="p-1">RPC</td><td class="${valueClass(changed)}">${hx(cpu.regs[62])}</td></tr>`;
+      }
+      ui.regTable.innerHTML = html;
+      cpu.prevRegs.set(cpu.regs);
+    }
+
+    function drawRam() {
+      const rows = [];
+      for (let addr = 0; addr < RAM_VIEW_ROWS; addr++) {
+        const current = getRamWord(addr);
+        const previous = cpu.prevRamView[addr] ?? 0;
+        const changed = current !== previous;
+        rows.push(`
+          <tr class="border-b border-outline-variant/5 ${changed ? "mem-changed" : ""}">
+            <td class="p-1 text-on-surface-variant">${ramAddrLabel(addr)}</td>
+            <td class="p-1 text-right">
+              <input
+                data-ram-addr="${addr}"
+                class="w-full bg-transparent text-right outline-none border border-transparent rounded px-1 py-0.5 ${changed ? "mem-changed text-secondary-container font-bold" : "text-on-surface"}"
+                value="${hx(current)}"
+                spellcheck="false"
+              />
+            </td>
+          </tr>`);
+      }
+      ui.ramTable.innerHTML = rows.join("");
+      cpu.prevRamView = new Uint16Array(Array.from({ length: RAM_VIEW_ROWS }, (_, addr) => getRamWord(addr)));
+    }
+
+    function renderAsmList() {
+      if (!cpu.program.length) {
+        ui.asmList.innerHTML = `<div class="text-on-surface/50">No assembled instructions.</div>`;
+        return;
+      }
+      const currentIdx = cpu.regs[62];
+      ui.asmList.innerHTML = cpu.program.map((inst, idx) => {
+        const active = idx === currentIdx;
+        const baseCls = "px-1 py-0.5 rounded mb-0.5";
+        const activeCls = active ? "bg-primary-container text-black font-bold" : "text-on-surface";
+        const marker = active ? "▶" : " ";
+        return `<div class="${baseCls} ${activeCls}">${marker} L${inst.lineNo.toString().padStart(2, "0")}: ${inst.asm}</div>`;
+      }).join("");
+
+      const activeRow = ui.asmList.querySelector("div.bg-primary-container");
+      if (activeRow) activeRow.scrollIntoView({ block: "nearest" });
+    }
+
+    function updateStatusRegister() {
+      // Update flag display values
+      ui.flagZVal.textContent = cpu.flags.Z;
+      ui.flagNVal.textContent = cpu.flags.N;
+      ui.flagCVal.textContent = cpu.flags.C;
+      ui.flagVVal.textContent = cpu.flags.V;
+
+      // Highlight active flags
+      ui.flagZBox.style.backgroundColor = cpu.flags.Z ? "#00ff00" : "#0a0e14";
+      ui.flagZBox.style.color = cpu.flags.Z ? "#002200" : "#dfe2eb";
+      ui.flagNBox.style.backgroundColor = cpu.flags.N ? "#00ff00" : "#0a0e14";
+      ui.flagNBox.style.color = cpu.flags.N ? "#002200" : "#dfe2eb";
+      ui.flagCBox.style.backgroundColor = cpu.flags.C ? "#00ff00" : "#0a0e14";
+      ui.flagCBox.style.color = cpu.flags.C ? "#002200" : "#dfe2eb";
+      ui.flagVBox.style.backgroundColor = cpu.flags.V ? "#00ff00" : "#0a0e14";
+      ui.flagVBox.style.color = cpu.flags.V ? "#002200" : "#dfe2eb";
+
+      // Update SVG flags
+      ui.flagZ.textContent = `Z:${cpu.flags.Z}`;
+      ui.flagN.textContent = `N:${cpu.flags.N}`;
+      ui.flagC.textContent = `C:${cpu.flags.C}`;
+      ui.flagV.textContent = `V:${cpu.flags.V}`;
+    }
+
+    function updateMuxControls() {
+      // Update MUX A selection
+      ui.muxASel.textContent = `SEL:${cpu.muxASel}`;
+      const muxAName = cpu.muxASel === 0 ? "ACC" : "PC";
+      const muxAVal = cpu.muxASel === 0 ? cpu.regs[0] : cpu.regs[63];
+      ui.muxAInfo.textContent = `Op1: ${muxAName} (${hx(muxAVal)})`;
+      ui.muxADisplay.textContent = hx(muxAVal);
+
+      // Update MUX B selection
+      ui.muxBSel.textContent = `SEL:${cpu.muxBSel}`;
+      const muxBName = cpu.muxBSel === 0 ? "IMM" : "REG";
+      ui.muxBInfo.textContent = `Op2: ${muxBName} (${hx(cpu.op2)})`;
+      ui.muxBDisplay.textContent = hx(cpu.op2);
+    }
+
+    function render() {
+      ui.stateDisplay.textContent = cpu.state;
+      ui.ctrlState.textContent = cpu.state;
+      ui.cycleDisplay.textContent = String(cpu.cycle);
+      ui.accDisplay.textContent = hx(cpu.regs[0]);
+      ui.pcDisplay.textContent = hx(cpu.regs[63]);
+      ui.opDisplay.textContent = cpu.instr ? (OP_BY[cpu.instr.op] ?? "?") : "---";
+      ui.aluDisplay.textContent = hx(cpu.lastAluOut);
+      drawRegs();
+      updateStatusRegister();
+      updateMuxControls();
+      renderAsmList();
+      drawRam();
+    }
+    function loadSampleProgram() {
+      ui.programInput.value = ["MTATS 0x05", "MTRT r1", "ADDTS r1", "STAT 0x10", "LDATS 0x10", "CALT 0x08", "ANDTS r1", "JPRT r62"].join("\n");
+      ui.statusMsg.textContent = "Sample loaded.";
+    }
+
+    async function loadProgramFromFile(file) {
+      if (!file) return;
+      const fileName = file.name || "(unnamed)";
+      try {
+        const text = await file.text();
+        ui.programInput.value = text.replace(/\r\n/g, "\n");
+        ui.statusMsg.textContent = `Loaded ${fileName}.`;
+        ui.statusMsg.style.color = "#34d399";
+        assemble();
+      } catch (err) {
+        ui.statusMsg.textContent = `✗ Failed to read ${fileName}: ${err?.message || err}`;
+        ui.statusMsg.style.color = "#ffb4ab";
+      } finally {
+        // Clear input so picking the same file again still fires change.
+        ui.programFileInput.value = "";
+      }
+    }
+
+    ui.sampleBtn.addEventListener("click", loadSampleProgram);
+    ui.loadFileBtn.addEventListener("click", () => ui.programFileInput.click());
+    ui.programFileInput.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      loadProgramFromFile(file);
+    });
+    ui.assembleBtn.addEventListener("click", assemble);
+    ui.resetBtn.addEventListener("click", resetCpu);
+    ui.nextBtn.addEventListener("click", stepCycle);
+    ui.ramTable.addEventListener("change", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement)) return;
+      const addr = Number(input.dataset.ramAddr);
+      if (!Number.isFinite(addr)) return;
+      try {
+        const value = parseRamValue(input.value);
+        setRamWord(addr, value);
+        input.value = hx(getRamWord(addr));
+        ui.statusMsg.textContent = `RAM[${ramAddrLabel(addr)}] updated.`;
+        ui.statusMsg.style.color = "#34d399";
+        render();
+      } catch (err) {
+        ui.statusMsg.textContent = `✗ ${err?.message || err}`;
+        ui.statusMsg.style.color = "#ffb4ab";
+        input.value = hx(getRamWord(addr));
+      }
+    });
+
+    function stopRun() {
+      if (cpu.runTimer) {
+        clearInterval(cpu.runTimer);
+        cpu.runTimer = null;
+      }
+      cpu.running = false;
+      ui.runBtn.textContent = "Run";
+    }
+
+    function startRun() {
+      if (cpu.running) return;
+      if (!cpu.program.length) {
+        ui.statusMsg.textContent = "✗ Assemble a program first.";
+        ui.statusMsg.style.color = "#ffb4ab";
+        return;
+      }
+      cpu.running = true;
+      ui.runBtn.textContent = "Stop";
+      cpu.runTimer = setInterval(() => {
+        // Stop when next fetch would be outside the assembled program.
+        if (cpu.state === "FETCH1" && cpu.regs[63] >= cpu.program.length) {
+          stopRun();
+          return;
+        }
+        stepCycle();
+      }, 250);
+    }
+
+    ui.runBtn.addEventListener("click", () => {
+      if (cpu.running) stopRun();
+      else startRun();
+    });
+    setupScrollHints();
+    loadSampleProgram();
+    assemble();
+    render();
+  </script>
+</body>
+
+</html>
