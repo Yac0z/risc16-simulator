@@ -950,20 +950,16 @@
         const base = `border-b border-outline-variant/5 ${labelClass}`.trim();
         return changed ? `${base} reg-changed` : base;
       };
-      const valueClass = changed => `p-1 text-right ${changed ? "reg-changed text-primary-container font-bold" : ""}`.trim();
+      const valueClass = (changed, extra = "") =>
+        `p-1 text-right ${extra} ${changed ? "reg-changed text-primary-container font-bold" : ""}`.trim();
+      const getName = i => i === 0 ? "ACC" : i === 62 ? "RPC" : i === 63 ? "PC" : `R${i}`;
+      const extra = i => i === 63 || i === 62 ? "text-secondary-container" : "";
 
-      let html = `<tr class="${rowClass(cpu.regs[0] !== cpu.prevRegs[0])}"><td class="p-1">ACC</td><td class="${valueClass(cpu.regs[0] !== cpu.prevRegs[0])}">${hx(cpu.regs[0])}</td></tr>`;
-      for (let i = 1; i < 16; i++) {
+      let html = "";
+      for (let i = 0; i < 64; i++) {
         const changed = cpu.regs[i] !== cpu.prevRegs[i];
-        html += `<tr class="${rowClass(changed)}"><td class="p-1">R${i}</td><td class="${valueClass(changed)}">${hx(cpu.regs[i])}</td></tr>`;
-      }
-      {
-        const changed = cpu.regs[63] !== cpu.prevRegs[63];
-        html += `<tr class="${rowClass(changed, "text-secondary-container")}"><td class="p-1 text-secondary-container">PC</td><td class="${valueClass(changed)} text-secondary-container">${hx(cpu.regs[63])}</td></tr>`;
-      }
-      {
-        const changed = cpu.regs[62] !== cpu.prevRegs[62];
-        html += `<tr class="${rowClass(changed)}"><td class="p-1">RPC</td><td class="${valueClass(changed)}">${hx(cpu.regs[62])}</td></tr>`;
+        const cls = extra(i);
+        html += `<tr class="${rowClass(changed, cls)}"><td class="p-1 ${cls}">${getName(i)}</td><td class="${valueClass(changed, cls)}">${hx(cpu.regs[i])}</td></tr>`;
       }
       ui.regTable.innerHTML = html;
       cpu.prevRegs.set(cpu.regs);
