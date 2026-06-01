@@ -327,6 +327,7 @@
   <!-- Header -->
   <header class="bg-[#10141a] z-50 flex justify-between items-center px-6 h-16 border-b border-outline-variant/15">
     <span class="text-xl font-bold text-[#00ff00]">FLUX-16</span>
+    <button id="helpBtn" class="ml-auto font-mono text-[10px] text-on-surface-variant/50 hover:text-primary-container border border-outline-variant/15 hover:border-primary-container/30 px-2.5 py-1 rounded transition-colors">? TUTORIAL</button>
   </header>
   <!-- Main Container -->
   <div class="flex flex-1 overflow-hidden">
@@ -370,8 +371,11 @@
       <!-- Schematic -->
       <section class="col-span-6 bg-surface-dim flex flex-col overflow-hidden">
         <div class="p-3 border-b border-outline-variant/15 flex justify-between items-center text-[10px]">
-          <span class="font-mono text-primary-container font-bold">CORE_CANVAS_01 :: SCHEMATIC</span>
-          <div class="flex gap-3">
+          <div class="flex items-center gap-px">
+            <button id="tabSchematic" onclick="switchTab('schematic')" class="font-mono text-[10px] font-bold px-3 py-1 rounded-l transition-colors bg-surface-container-high text-primary-container">SCHEMATIC</button>
+            <button id="tabISA" onclick="switchTab('isa')" class="font-mono text-[10px] font-bold px-3 py-1 rounded-r transition-colors bg-surface-container text-on-surface-variant/40 hover:text-on-surface-variant">ISA REF</button>
+          </div>
+          <div class="flex gap-3" id="schematicLegend">
             <div class="flex items-center gap-1">
               <div class="w-2 h-2 rounded-full bg-primary-container glow-primary animate-pulse"></div><span
                 class="text-on-surface-variant">DATA_BUS</span>
@@ -382,6 +386,7 @@
             </div>
           </div>
         </div>
+        <div id="schematicView" class="flex-1 flex flex-col overflow-hidden">
         <div class="flex-1 flex items-center justify-center p-6 overflow-auto scroll-hint-host" data-scroll-hint="both"
           data-scroll-hint-host="self">
           <svg viewBox="0 0 900 650" class="w-full h-full drop-shadow-2xl" style="min-width:600px;">
@@ -596,6 +601,314 @@
             <div class="font-mono text-secondary-container" id="muxBDisplay">---</div>
           </div>
         </div>
+        </div><!-- /schematicView -->
+
+        <!-- ISA Reference View -->
+        <div id="isaView" class="flex-1 overflow-y-auto scroll-hint-host" data-scroll-hint="y" data-scroll-hint-host="self" style="display:none;">
+          <div class="max-w-3xl mx-auto px-6 py-5">
+
+            <!-- Page title -->
+            <div class="mb-6">
+              <div class="font-mono text-[9px] text-on-surface-variant/30 mb-1 tracking-widest">FLUX-16 · RISC-16</div>
+              <h1 class="font-headline text-2xl font-bold text-on-surface mb-1">Instruction Set Architecture</h1>
+              <p class="text-on-surface-variant/60 text-xs">16-bit RISC · 64 registers · 16 opcodes · 12 condition codes · 5-stage pipeline</p>
+            </div>
+
+            <!-- Instruction Format -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-primary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Instruction Word Format</h2>
+              <div class="grid font-mono text-[10px] text-center rounded overflow-hidden border border-outline-variant/25 mb-3" style="grid-template-columns:2fr 2fr 1fr 3fr;">
+                <div class="bg-[#0f1e30] border-r border-outline-variant/25 p-3">
+                  <div class="text-secondary-container font-bold text-sm">COND</div>
+                  <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[15:12] · 4 bits</div>
+                </div>
+                <div class="bg-[#091509] border-r border-outline-variant/25 p-3">
+                  <div class="text-primary-container font-bold text-sm">OP</div>
+                  <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[11:8] · 4 bits</div>
+                </div>
+                <div class="bg-surface-container-lowest border-r border-outline-variant/25 p-3">
+                  <div class="text-on-surface font-bold text-sm">U I</div>
+                  <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[7:6] · 2 b</div>
+                </div>
+                <div class="bg-surface-container-lowest p-3">
+                  <div class="text-on-surface font-bold text-sm">VAL</div>
+                  <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[5:0] · 6 bits</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10px]">
+                <div class="flex gap-2.5 items-start"><span class="text-secondary-container font-mono font-bold w-8 shrink-0">COND</span><span class="text-on-surface-variant/70">Condition code — instruction only executes when this holds (T = always, default)</span></div>
+                <div class="flex gap-2.5 items-start"><span class="text-on-surface font-mono font-bold w-8 shrink-0">U</span><span class="text-on-surface-variant/70">Update-flags bit — 1 writes Z/N/C/V from the result (assembly suffix <span class="font-mono text-on-surface/60">S</span>)</span></div>
+                <div class="flex gap-2.5 items-start"><span class="text-primary-container font-mono font-bold w-8 shrink-0">OP</span><span class="text-on-surface-variant/70">Opcode — selects the operation (16 total)</span></div>
+                <div class="flex gap-2.5 items-start"><span class="text-on-surface font-mono font-bold w-8 shrink-0">I</span><span class="text-on-surface-variant/70">Immediate bit — 1: VAL is a signed 6-bit literal, 0: VAL is a register number</span></div>
+                <div class="flex gap-2.5 items-start col-span-2"><span class="text-on-surface font-mono font-bold w-8 shrink-0">VAL</span><span class="text-on-surface-variant/70">6-bit field: register address R0–R63, or signed immediate −32..+31 (sign-extended to 16 bits by hardware)</span></div>
+              </div>
+            </div>
+
+            <!-- Opcodes -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-primary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Opcodes</h2>
+              <table class="w-full font-mono text-[9px] border-collapse">
+                <thead>
+                  <tr class="text-on-surface-variant/40 border-b border-outline-variant/20">
+                    <th class="text-left py-1 px-1.5 w-10">CODE</th>
+                    <th class="text-left py-1 px-1.5 w-14">MNEM</th>
+                    <th class="text-left py-1 px-1.5 w-48">OPERATION</th>
+                    <th class="text-left py-1 px-1.5">DESCRIPTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Logic group -->
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x0</td><td class="py-1 px-1.5 text-primary-container font-bold">AND</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC AND op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Bitwise AND</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x1</td><td class="py-1 px-1.5 text-primary-container font-bold">OR</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC OR op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Bitwise OR</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x2</td><td class="py-1 px-1.5 text-primary-container font-bold">XOR</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC XOR op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Bitwise XOR</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x3</td><td class="py-1 px-1.5 text-primary-container font-bold">NOT</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ~ACC</td><td class="py-1 px-1.5 text-on-surface-variant/65">Bitwise NOT — operand field is ignored</td>
+                  </tr>
+                  <!-- Arithmetic group -->
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-surface-container-lowest/20">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x4</td><td class="py-1 px-1.5 text-primary-container font-bold">ADD</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC + op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Add — C = unsigned carry out, V = signed overflow</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-surface-container-lowest/20">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x5</td><td class="py-1 px-1.5 text-primary-container font-bold">SUB</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC − op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Subtract — C = 1 when no borrow (a ≥ b), V = signed overflow</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-surface-container-lowest/20">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x6</td><td class="py-1 px-1.5 text-primary-container font-bold">LSL</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC &lt;&lt; op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Logical shift left — last shifted-out bit goes to C</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-surface-container-lowest/20">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x7</td><td class="py-1 px-1.5 text-primary-container font-bold">LSR</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← ACC &gt;&gt; op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Logical shift right — zero-fills MSB, last shifted-out bit to C</td>
+                  </tr>
+                  <!-- Memory group -->
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x8</td><td class="py-1 px-1.5 text-primary-container font-bold">LDA</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← RAM[VAL]</td><td class="py-1 px-1.5 text-on-surface-variant/65">Load word from data memory at address VAL</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0x9</td><td class="py-1 px-1.5 text-primary-container font-bold">STA</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">RAM[VAL] ← ACC</td><td class="py-1 px-1.5 text-on-surface-variant/65">Store ACC to data memory at address VAL</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xA</td><td class="py-1 px-1.5 text-primary-container font-bold">MTA</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">ACC ← op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Move operand (immediate or register value) into ACC</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xB</td><td class="py-1 px-1.5 text-primary-container font-bold">MTR</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">R[VAL] ← ACC</td><td class="py-1 px-1.5 text-on-surface-variant/65">Move ACC into register R[VAL]</td>
+                  </tr>
+                  <!-- Control flow group -->
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-[#0f1e30]/40">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xC</td><td class="py-1 px-1.5 text-secondary-container font-bold">JRP</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">PC ← PC + op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Jump relative forward — PC + signed offset</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-[#0f1e30]/40">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xD</td><td class="py-1 px-1.5 text-secondary-container font-bold">JRN</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">PC ← PC − op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Jump relative backward — PC − offset (loop back)</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-[#0f1e30]/40">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xE</td><td class="py-1 px-1.5 text-secondary-container font-bold">JPR</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">PC ← R[VAL]</td><td class="py-1 px-1.5 text-on-surface-variant/65">Jump to absolute address held in register R[VAL]</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60 bg-[#0f1e30]/40">
+                    <td class="py-1 px-1.5 text-on-surface-variant/35">0xF</td><td class="py-1 px-1.5 text-secondary-container font-bold">CAL</td>
+                    <td class="py-1 px-1.5 text-on-surface/55">RPC ← PC ; PC ← op_b</td><td class="py-1 px-1.5 text-on-surface-variant/65">Call subroutine — saves return address in RPC (R62), jumps to op_b</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="mt-2 font-mono text-[8px] text-on-surface-variant/35 bg-surface-container-lowest/40 px-2 py-1 rounded">
+                op_b = sign_ext(VAL) when I=1 (immediate mode) · op_b = R[VAL] when I=0 (register mode) · JRP/JRN use PC as ALU input A
+              </div>
+            </div>
+
+            <!-- Conditions -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-secondary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Condition Codes</h2>
+              <div class="grid grid-cols-2 gap-4">
+                <table class="font-mono text-[9px] border-collapse">
+                  <thead><tr class="text-on-surface-variant/40 border-b border-outline-variant/20"><th class="text-left py-1 px-1.5 w-10">CODE</th><th class="text-left py-1 px-1.5 w-12">MNEM</th><th class="text-left py-1 px-1.5">TEST</th></tr></thead>
+                  <tbody>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x0</td><td class="py-1 px-1.5 text-on-surface/50 font-bold">F</td><td class="py-1 px-1.5 text-on-surface-variant/60">Never execute</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x1</td><td class="py-1 px-1.5 text-primary-container font-bold">T</td><td class="py-1 px-1.5 text-on-surface-variant/60">Always execute <span class="text-on-surface-variant/30">(default)</span></td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x2</td><td class="py-1 px-1.5 text-secondary-container font-bold">Z</td><td class="py-1 px-1.5 text-on-surface-variant/60">Z = 1</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x3</td><td class="py-1 px-1.5 text-secondary-container font-bold">NZ</td><td class="py-1 px-1.5 text-on-surface-variant/60">Z = 0</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x4</td><td class="py-1 px-1.5 text-secondary-container font-bold">P</td><td class="py-1 px-1.5 text-on-surface-variant/60">Z = 0 AND N = 0 <span class="text-on-surface-variant/35">(strictly positive)</span></td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x5</td><td class="py-1 px-1.5 text-secondary-container font-bold">NP</td><td class="py-1 px-1.5 text-on-surface-variant/60">Z = 1 OR N = 1</td></tr>
+                  </tbody>
+                </table>
+                <table class="font-mono text-[9px] border-collapse">
+                  <thead><tr class="text-on-surface-variant/40 border-b border-outline-variant/20"><th class="text-left py-1 px-1.5 w-10">CODE</th><th class="text-left py-1 px-1.5 w-12">MNEM</th><th class="text-left py-1 px-1.5">TEST</th></tr></thead>
+                  <tbody>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x6</td><td class="py-1 px-1.5 text-secondary-container font-bold">N</td><td class="py-1 px-1.5 text-on-surface-variant/60">N = 1</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x7</td><td class="py-1 px-1.5 text-secondary-container font-bold">NN</td><td class="py-1 px-1.5 text-on-surface-variant/60">N = 0</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x8</td><td class="py-1 px-1.5 text-secondary-container font-bold">C</td><td class="py-1 px-1.5 text-on-surface-variant/60">C = 1</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0x9</td><td class="py-1 px-1.5 text-secondary-container font-bold">NC</td><td class="py-1 px-1.5 text-on-surface-variant/60">C = 0</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0xA</td><td class="py-1 px-1.5 text-secondary-container font-bold">V</td><td class="py-1 px-1.5 text-on-surface-variant/60">V = 1</td></tr>
+                    <tr class="border-b border-outline-variant/5"><td class="py-1 px-1.5 text-on-surface-variant/35">0xB</td><td class="py-1 px-1.5 text-secondary-container font-bold">NV</td><td class="py-1 px-1.5 text-on-surface-variant/60">V = 0</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-2 font-mono text-[8px] text-on-surface-variant/35 bg-surface-container-lowest/40 px-2 py-1 rounded">
+                Condition is evaluated at EXEC time against the current STATUS_REG values. A false condition suppresses the write-back but does not stall the pipeline.
+              </div>
+            </div>
+
+            <!-- Flags -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-primary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Status Flags</h2>
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/15">
+                  <div class="font-mono text-primary-container font-bold text-xs mb-1">Z &nbsp;— Zero</div>
+                  <div class="text-[9px] text-on-surface-variant/65 leading-relaxed">Set when the ALU result equals 0x0000. Cleared otherwise. Affects <span class="font-mono text-on-surface/50">Z</span> and <span class="font-mono text-on-surface/50">NZ</span> conditions.</div>
+                </div>
+                <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/15">
+                  <div class="font-mono text-primary-container font-bold text-xs mb-1">N &nbsp;— Negative</div>
+                  <div class="text-[9px] text-on-surface-variant/65 leading-relaxed">Set when result bit 15 = 1 (two's-complement signed interpretation). Affects <span class="font-mono text-on-surface/50">N</span>, <span class="font-mono text-on-surface/50">NN</span>, <span class="font-mono text-on-surface/50">P</span>, <span class="font-mono text-on-surface/50">NP</span>.</div>
+                </div>
+                <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/15">
+                  <div class="font-mono text-primary-container font-bold text-xs mb-1">C &nbsp;— Carry</div>
+                  <div class="text-[9px] text-on-surface-variant/65 leading-relaxed">ADD: set on unsigned overflow past bit 15. SUB: set when a ≥ b (no borrow). Shifts: last bit shifted out. Affects <span class="font-mono text-on-surface/50">C</span>, <span class="font-mono text-on-surface/50">NC</span>.</div>
+                </div>
+                <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/15">
+                  <div class="font-mono text-primary-container font-bold text-xs mb-1">V &nbsp;— Overflow</div>
+                  <div class="text-[9px] text-on-surface-variant/65 leading-relaxed">Set when signed ADD or SUB overflows the two's-complement range (−32768 to +32767). Affects <span class="font-mono text-on-surface/50">V</span>, <span class="font-mono text-on-surface/50">NV</span>.</div>
+                </div>
+              </div>
+              <div class="font-mono text-[8px] text-on-surface-variant/35 bg-surface-container-lowest/40 px-2 py-1 rounded">
+                Flags are only updated when U = 1 in the instruction word (assembly suffix <span class="text-on-surface/50">S</span>). Without S the STATUS_REG is preserved.
+              </div>
+            </div>
+
+            <!-- Special Registers -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-secondary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Special Registers</h2>
+              <div class="space-y-2">
+                <div class="flex gap-4 bg-surface-container-lowest rounded p-3 border border-primary-container/20 items-start">
+                  <span class="font-mono text-primary-container font-bold text-xs shrink-0 w-20">R0 · ACC</span>
+                  <div class="text-[9px] text-on-surface-variant/70 leading-relaxed">
+                    <strong class="text-on-surface font-semibold">Accumulator.</strong> Implicit destination of all ALU results (AND, OR, ADD, SUB, NOT, LSL, LSR, LDA, MTA). Also serves as ALU input A for all non-jump instructions.
+                  </div>
+                </div>
+                <div class="flex gap-4 bg-surface-container-lowest rounded p-3 border border-secondary-container/20 items-start">
+                  <span class="font-mono text-secondary-container font-bold text-xs shrink-0 w-20">R62 · RPC</span>
+                  <div class="text-[9px] text-on-surface-variant/70 leading-relaxed">
+                    <strong class="text-on-surface font-semibold">Return Program Counter.</strong> Automatically written at FETCH1 with the address of the current instruction (before PC increments). Use <span class="font-mono text-on-surface/60">JPRT r62</span> to return from a subroutine, or <span class="font-mono text-on-surface/60">CALT addr</span> to call one.
+                  </div>
+                </div>
+                <div class="flex gap-4 bg-surface-container-lowest rounded p-3 border border-secondary-container/20 items-start">
+                  <span class="font-mono text-secondary-container font-bold text-xs shrink-0 w-20">R63 · PC</span>
+                  <div class="text-[9px] text-on-surface-variant/70 leading-relaxed">
+                    <strong class="text-on-surface font-semibold">Program Counter.</strong> Holds the address of the next instruction to fetch. Auto-incremented each FETCH1 stage. Written by JRP, JRN, JPR, and CAL during STORE to redirect control flow.
+                  </div>
+                </div>
+              </div>
+              <div class="mt-2 font-mono text-[8px] text-on-surface-variant/35 bg-surface-container-lowest/40 px-2 py-1 rounded">
+                R1–R61 are general-purpose 16-bit registers. All 64 registers initialize to 0x0000 on reset.
+              </div>
+            </div>
+
+            <!-- Assembly Syntax -->
+            <div class="mb-7">
+              <h2 class="font-mono text-[10px] font-bold text-primary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Assembly Syntax</h2>
+              <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/20 font-mono mb-4">
+                <div class="text-on-surface-variant/35 text-[8px] mb-2 tracking-wider">FORMAT — ONE INSTRUCTION PER LINE</div>
+                <div class="text-base"><span class="text-primary-container font-bold">OP</span><span class="text-secondary-container font-bold">COND</span><span class="text-on-surface-variant/50">[S]</span>&nbsp;&nbsp;<span class="text-on-surface/75">operand</span></div>
+                <div class="text-[8px] text-on-surface-variant/45 mt-1.5 leading-relaxed">
+                  COND is optional — defaults to T (always). S suffix sets U=1 (update flags). Semicolon starts a comment.
+                  Operand is <span class="text-on-surface/50">rN</span> for register N, a decimal integer, or <span class="text-on-surface/50">0xNN</span> hex literal.
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-x-8 gap-y-4 font-mono text-[9px]">
+                <div>
+                  <div class="text-on-surface-variant/35 text-[8px] tracking-wider mb-1.5">LOGIC &amp; ARITHMETIC</div>
+                  <div class="space-y-1 text-on-surface/65">
+                    <div><span class="text-primary-container">ANDTS</span> r3<span class="text-on-surface-variant/35 ml-2">; ACC &amp;= R3, upd flags</span></div>
+                    <div><span class="text-primary-container">ADDTS</span> r1<span class="text-on-surface-variant/35 ml-2">; ACC += R1, upd flags</span></div>
+                    <div><span class="text-primary-container">SUBTS</span> 1 <span class="text-on-surface-variant/35 ml-2">; ACC -= 1 (imm)</span></div>
+                    <div><span class="text-primary-container">LSLTS</span> 4 <span class="text-on-surface-variant/35 ml-2">; ACC &lt;&lt;= 4</span></div>
+                    <div><span class="text-primary-container">NOTTS</span> r0<span class="text-on-surface-variant/35 ml-2">; ACC = ~ACC</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-on-surface-variant/35 text-[8px] tracking-wider mb-1.5">LOAD / STORE / MOVE</div>
+                  <div class="space-y-1 text-on-surface/65">
+                    <div><span class="text-primary-container">MTATS</span> 0x1F<span class="text-on-surface-variant/35 ml-2">; ACC = 0x1F</span></div>
+                    <div><span class="text-primary-container">MTRT </span> r2  <span class="text-on-surface-variant/35 ml-2">; R2 = ACC</span></div>
+                    <div><span class="text-primary-container">STAT </span> 0x08<span class="text-on-surface-variant/35 ml-2">; RAM[8] = ACC</span></div>
+                    <div><span class="text-primary-container">LDATS</span> 0x08<span class="text-on-surface-variant/35 ml-2">; ACC = RAM[8]</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-on-surface-variant/35 text-[8px] tracking-wider mb-1.5">CONDITIONAL EXECUTION</div>
+                  <div class="space-y-1 text-on-surface/65">
+                    <div><span class="text-primary-container">ADDTS </span>r2<span class="text-on-surface-variant/35 ml-2">; always (T)</span></div>
+                    <div><span class="text-primary-container">SUBZS </span>r3<span class="text-on-surface-variant/35 ml-2">; only if Z=1</span></div>
+                    <div><span class="text-primary-container">ADDNZS</span>r4<span class="text-on-surface-variant/35 ml-2">; only if Z=0</span></div>
+                    <div><span class="text-primary-container">ANDNS </span>r5<span class="text-on-surface-variant/35 ml-2">; only if N=1</span></div>
+                    <div><span class="text-primary-container">ADDCS </span>r6<span class="text-on-surface-variant/35 ml-2">; only if C=1</span></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="text-on-surface-variant/35 text-[8px] tracking-wider mb-1.5">CONTROL FLOW</div>
+                  <div class="space-y-1 text-on-surface/65">
+                    <div><span class="text-secondary-container">CALT  </span>0x08<span class="text-on-surface-variant/35 ml-2">; call addr 8</span></div>
+                    <div><span class="text-secondary-container">JPRT  </span>r62 <span class="text-on-surface-variant/35 ml-2">; return (PC=RPC)</span></div>
+                    <div><span class="text-secondary-container">JRPT  </span>3   <span class="text-on-surface-variant/35 ml-2">; jump forward 3</span></div>
+                    <div><span class="text-secondary-container">JRNT  </span>2   <span class="text-on-surface-variant/35 ml-2">; jump back 2</span></div>
+                    <div><span class="text-secondary-container">JRNNZ </span>1   <span class="text-on-surface-variant/35 ml-2">; back 1 if NZ</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Encoding examples -->
+            <div class="mb-4">
+              <h2 class="font-mono text-[10px] font-bold text-primary-container uppercase tracking-widest mb-3 pb-1 border-b border-outline-variant/20">Encoding Examples</h2>
+              <table class="w-full font-mono text-[9px] border-collapse">
+                <thead><tr class="text-on-surface-variant/40 border-b border-outline-variant/20"><th class="text-left py-1 px-1.5">ASSEMBLY</th><th class="text-left py-1 px-1.5">BINARY</th><th class="text-left py-1 px-1.5">HEX</th><th class="text-left py-1 px-1.5">DECODED</th></tr></thead>
+                <tbody>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-primary-container">MTATS 0x05</td>
+                    <td class="py-1 px-1.5 text-on-surface/50"><span class="text-secondary-container">0001</span> <span class="text-primary-container">1010</span> 1 1 <span class="text-on-surface/40">000101</span></td>
+                    <td class="py-1 px-1.5 text-on-surface/60">0x1AC5</td>
+                    <td class="py-1 px-1.5 text-on-surface-variant/55">COND=T, OP=MTA, U=1, I=1, VAL=5</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-primary-container">ADDTS r1</td>
+                    <td class="py-1 px-1.5 text-on-surface/50"><span class="text-secondary-container">0001</span> <span class="text-primary-container">0100</span> 1 0 <span class="text-on-surface/40">000001</span></td>
+                    <td class="py-1 px-1.5 text-on-surface/60">0x1481</td>
+                    <td class="py-1 px-1.5 text-on-surface-variant/55">COND=T, OP=ADD, U=1, I=0, VAL=1</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-primary-container">SUBZS r2</td>
+                    <td class="py-1 px-1.5 text-on-surface/50"><span class="text-secondary-container">0010</span> <span class="text-primary-container">0101</span> 1 0 <span class="text-on-surface/40">000010</span></td>
+                    <td class="py-1 px-1.5 text-on-surface/60">0x2582</td>
+                    <td class="py-1 px-1.5 text-on-surface-variant/55">COND=Z, OP=SUB, U=1, I=0, VAL=2</td>
+                  </tr>
+                  <tr class="border-b border-outline-variant/5 hover:bg-surface-container-lowest/60">
+                    <td class="py-1 px-1.5 text-primary-container">STAT 0x10</td>
+                    <td class="py-1 px-1.5 text-on-surface/50"><span class="text-secondary-container">0001</span> <span class="text-primary-container">1001</span> 0 1 <span class="text-on-surface/40">010000</span></td>
+                    <td class="py-1 px-1.5 text-on-surface/60">0x1970</td>
+                    <td class="py-1 px-1.5 text-on-surface-variant/55">COND=T, OP=STA, U=0, I=1, VAL=16</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div><!-- /max-w-3xl -->
+        </div><!-- /isaView -->
+
       </section>
       <!-- Inspector -->
       <section
@@ -686,6 +999,34 @@
       </section>
     </main>
   </div>
+  <!-- Tutorial Modal -->
+  <div id="tutorialOverlay" class="fixed inset-0 z-[100] flex items-center justify-center p-4" style="display:none;background:rgba(10,14,20,0.88);backdrop-filter:blur(5px);">
+    <div class="bg-surface-container border border-outline-variant/30 rounded-xl shadow-2xl overflow-hidden w-full flex flex-col" style="max-width:680px;max-height:90vh;">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-outline-variant/20 bg-surface-container-low shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="font-mono text-[11px] text-primary-container font-bold tracking-wider">FLUX-16 :: QUICK START</span>
+          <span id="tutStepCounter" class="font-mono text-[9px] text-on-surface-variant/40"></span>
+        </div>
+        <button id="tutCloseBtn" class="font-mono text-[10px] text-on-surface-variant/40 hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container-high transition-colors">✕ SKIP</button>
+      </div>
+      <!-- Step Title -->
+      <div class="px-5 pt-5 pb-1 shrink-0">
+        <h2 id="tutStepTitle" class="font-headline text-lg font-bold text-on-surface"></h2>
+      </div>
+      <!-- Step Content -->
+      <div id="tutStepContent" class="px-5 py-3 overflow-y-auto flex-1" style="min-height:260px;"></div>
+      <!-- Modal Footer -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-t border-outline-variant/20 bg-surface-container-low shrink-0">
+        <div class="flex gap-1.5" id="tutDots"></div>
+        <div class="flex gap-2">
+          <button id="tutPrevBtn" class="font-mono text-[10px] text-on-surface-variant hover:text-on-surface px-3 py-1.5 rounded bg-surface-container-high hover:bg-surface-container-highest transition-colors">← PREV</button>
+          <button id="tutNextBtn" class="font-mono text-[10px] text-background px-3 py-1.5 rounded bg-primary-container hover:opacity-90 transition-opacity font-bold">NEXT →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer
     class="h-8 bg-surface-container-lowest border-t border-outline-variant/15 flex items-center px-6 text-[10px] font-mono">
@@ -1146,6 +1487,377 @@
     loadSampleProgram();
     assemble();
     render();
+
+    // ── TAB SWITCHING ─────────────────────────────────────────────────────
+    function switchTab(tab) {
+      const isISA = tab === "isa";
+      document.getElementById("schematicView").style.display = isISA ? "none" : "";
+      document.getElementById("isaView").style.display = isISA ? "" : "none";
+      document.getElementById("schematicLegend").style.display = isISA ? "none" : "";
+      const tSch = document.getElementById("tabSchematic");
+      const tISA = document.getElementById("tabISA");
+      tSch.classList.toggle("text-primary-container", !isISA);
+      tSch.classList.toggle("bg-surface-container-high", !isISA);
+      tSch.classList.toggle("text-on-surface-variant/40", isISA);
+      tSch.classList.toggle("bg-surface-container", isISA);
+      tISA.classList.toggle("text-primary-container", isISA);
+      tISA.classList.toggle("bg-surface-container-high", isISA);
+      tISA.classList.toggle("text-on-surface-variant/40", !isISA);
+      tISA.classList.toggle("bg-surface-container", !isISA);
+      if (isISA) setupScrollHints();
+    }
+
+    // ── TUTORIAL ──────────────────────────────────────────────────────────
+    const TUTORIAL_STEPS = [
+      {
+        title: "Welcome to FLUX-16",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-4">
+            FLUX-16 is a <span class="text-primary-container font-bold">16-bit RISC processor simulator</span>.
+            Write assembly programs, then watch them execute one pipeline stage at a time —
+            observing every register, flag, and memory cell update live.
+          </p>
+          <div class="grid grid-cols-3 gap-2 mb-4">
+            <div class="bg-surface-container-lowest p-3 rounded border border-outline-variant/15">
+              <div class="text-primary-container font-mono text-[9px] font-bold mb-1.5">① EDITOR</div>
+              <div class="text-on-surface-variant/70 text-[10px]">Write or load assembly in the left panel. Assemble it, then step or run.</div>
+            </div>
+            <div class="bg-surface-container-lowest p-3 rounded border border-outline-variant/15">
+              <div class="text-primary-container font-mono text-[9px] font-bold mb-1.5">② SCHEMATIC</div>
+              <div class="text-on-surface-variant/70 text-[10px]">The center shows the CPU datapath — ALU, MUXes, register file, and control signals.</div>
+            </div>
+            <div class="bg-surface-container-lowest p-3 rounded border border-outline-variant/15">
+              <div class="text-secondary-container font-mono text-[9px] font-bold mb-1.5">③ INSPECTOR</div>
+              <div class="text-on-surface-variant/70 text-[10px]">The right panel shows all 64 registers, status flags, and editable RAM cells live.</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <div class="bg-surface-container-lowest p-2.5 rounded border border-outline-variant/15 text-[10px]">
+              <span class="font-mono text-primary-container font-bold">Next Cycle</span>
+              <span class="text-on-surface-variant/70 ml-1">— advance one pipeline stage at a time</span>
+            </div>
+            <div class="bg-surface-container-lowest p-2.5 rounded border border-outline-variant/15 text-[10px]">
+              <span class="font-mono text-primary-container font-bold">Run / Stop</span>
+              <span class="text-on-surface-variant/70 ml-1">— auto-execute at 4 Hz; click again to pause</span>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest p-3 rounded border-l-2 border-primary-container/40 font-mono text-[9px] text-on-surface-variant/60">
+            TIP: Click <span class="text-primary-container">? TUTORIAL</span> in the header any time to re-open this guide.
+          </div>`
+      },
+      {
+        title: "The 16-bit Instruction Word",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-3">
+            Every FLUX-16 instruction is a single <span class="text-primary-container font-bold">16-bit word</span> split into four fields:
+          </p>
+          <div class="grid font-mono text-[10px] text-center rounded overflow-hidden border border-outline-variant/25 mb-1" style="grid-template-columns:2fr 2fr 1fr 3fr;">
+            <div class="bg-[#0f1e30] border-r border-outline-variant/25 p-2.5">
+              <div class="text-secondary-container font-bold">COND</div>
+              <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[15:12]</div>
+              <div class="text-on-surface-variant/50 text-[8px] mt-1">4 bits</div>
+            </div>
+            <div class="bg-[#0a1a0f] border-r border-outline-variant/25 p-2.5">
+              <div class="text-primary-container font-bold">OP</div>
+              <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[11:8]</div>
+              <div class="text-on-surface-variant/50 text-[8px] mt-1">4 bits</div>
+            </div>
+            <div class="bg-surface-container-lowest border-r border-outline-variant/25 p-2.5">
+              <div class="text-on-surface font-bold">U&nbsp;I</div>
+              <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[7][6]</div>
+              <div class="text-on-surface-variant/50 text-[8px] mt-1">2 b</div>
+            </div>
+            <div class="bg-surface-container-lowest p-2.5">
+              <div class="text-on-surface font-bold">VAL</div>
+              <div class="text-on-surface-variant/40 text-[8px] mt-0.5">[5:0]</div>
+              <div class="text-on-surface-variant/50 text-[8px] mt-1">6 bits</div>
+            </div>
+          </div>
+          <div class="font-mono text-[8px] text-on-surface-variant/30 text-center mb-4 tracking-widest">
+            15 ──────────────────────────────────── 0
+          </div>
+          <div class="space-y-2 text-[10px]">
+            <div class="flex gap-3 items-start">
+              <span class="text-secondary-container font-mono font-bold w-14 shrink-0">COND</span>
+              <span class="text-on-surface-variant/80">4-bit condition code — instruction only executes when this condition is met (e.g. <span class="font-mono text-on-surface">Z</span> = zero flag set, <span class="font-mono text-on-surface">T</span> = always).</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-primary-container font-mono font-bold w-14 shrink-0">OP</span>
+              <span class="text-on-surface-variant/80">4-bit opcode — selects the operation: ADD, SUB, AND, LDA, STA, JRP, etc. (16 operations total).</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-on-surface font-mono font-bold w-14 shrink-0">U</span>
+              <span class="text-on-surface-variant/80">Update-flags bit — when 1, the Z/N/C/V status register is refreshed with the result's attributes.</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-on-surface font-mono font-bold w-14 shrink-0">I</span>
+              <span class="text-on-surface-variant/80">Immediate bit — when 1, VAL is a 6-bit signed literal; when 0, VAL is a register number (R0–R63).</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="text-on-surface font-mono font-bold w-14 shrink-0">VAL</span>
+              <span class="text-on-surface-variant/80">6-bit value field: a register address (0–63) or a signed immediate (−32 to +31). Sign-extended by hardware.</span>
+            </div>
+          </div>`
+      },
+      {
+        title: "Writing Assembly",
+        content: `
+          <div class="bg-surface-container-lowest rounded p-3 font-mono border border-outline-variant/20 mb-4">
+            <div class="text-on-surface-variant/40 text-[9px] mb-1.5">SYNTAX</div>
+            <div class="text-on-surface text-sm"><span class="text-primary-container font-bold">OP</span><span class="text-secondary-container font-bold">COND</span><span class="text-on-surface-variant">[S]</span>&nbsp;&nbsp;<span class="text-on-surface/80">operand</span></div>
+          </div>
+          <div class="space-y-2 text-[10px] mb-4">
+            <div class="flex gap-3 items-start">
+              <span class="font-mono text-primary-container font-bold w-16 shrink-0">OP</span>
+              <span class="text-on-surface-variant/80">The opcode — one of: <span class="font-mono text-on-surface/80">AND OR XOR NOT ADD SUB LSL LSR LDA STA MTA MTR JRP JRN JPR CAL</span></span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="font-mono text-secondary-container font-bold w-16 shrink-0">COND</span>
+              <span class="text-on-surface-variant/80">Optional condition suffix appended directly after OP (e.g. <span class="font-mono text-on-surface">ADDZ</span>). Omit for always-execute (<span class="font-mono text-on-surface">T</span>).</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="font-mono text-on-surface font-bold w-16 shrink-0">[S]</span>
+              <span class="text-on-surface-variant/80">Append <span class="font-mono text-on-surface">S</span> to update the Z, N, C, V flags from the result (e.g. <span class="font-mono text-on-surface">ADDTS</span> = ADD, always, update flags).</span>
+            </div>
+            <div class="flex gap-3 items-start">
+              <span class="font-mono text-on-surface font-bold w-16 shrink-0">operand</span>
+              <span class="text-on-surface-variant/80">A register <span class="font-mono text-on-surface">r0–r63</span>, a decimal integer <span class="font-mono text-on-surface">-32..31</span>, or hex literal <span class="font-mono text-on-surface">0x00–0x3F</span>.</span>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/20">
+            <div class="text-on-surface-variant/40 text-[9px] font-mono mb-2">EXAMPLES</div>
+            <div class="space-y-1.5 font-mono text-[10px]">
+              <div><span class="text-primary-container">MTATS</span> <span class="text-on-surface">0x05</span><span class="text-on-surface-variant/40 ml-3">; ACC ← 5 (always, update flags)</span></div>
+              <div><span class="text-primary-container">ADDTS</span> <span class="text-on-surface">r1 </span><span class="text-on-surface-variant/40 ml-3">; ACC ← ACC + R1 (always, update flags)</span></div>
+              <div><span class="text-primary-container">SUBZS</span> <span class="text-on-surface">r2 </span><span class="text-on-surface-variant/40 ml-3">; ACC ← ACC − R2 (if Z=1, update flags)</span></div>
+              <div><span class="text-primary-container">STAT </span> <span class="text-on-surface">0x10</span><span class="text-on-surface-variant/40 ml-3">; RAM[0x10] ← ACC (always)</span></div>
+              <div><span class="text-primary-container">LDATS</span> <span class="text-on-surface">0x10</span><span class="text-on-surface-variant/40 ml-3">; ACC ← RAM[0x10] (always, update flags)</span></div>
+              <div><span class="text-primary-container">JPRT </span> <span class="text-on-surface">r62 </span><span class="text-on-surface-variant/40 ml-3">; PC ← R62 (subroutine return)</span></div>
+            </div>
+          </div>
+          <div class="mt-3 bg-surface-container-lowest p-2 rounded border border-outline-variant/15 font-mono text-[9px] text-on-surface-variant/50">
+            Comments start with <span class="text-on-surface/60">;</span> and are ignored by the assembler.
+          </div>`
+      },
+      {
+        title: "The Register File",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-3">
+            FLUX-16 has <span class="text-primary-container font-bold">64 general-purpose 16-bit registers</span> (R0–R63).
+            Three carry fixed architectural roles:
+          </p>
+          <div class="space-y-2 mb-4">
+            <div class="bg-surface-container-lowest rounded p-3 border border-primary-container/25 flex gap-3 items-start">
+              <div class="font-mono text-primary-container font-bold text-xs shrink-0 w-20 pt-0.5">R0 · ACC</div>
+              <div class="text-[10px] text-on-surface-variant/80">
+                <div class="font-bold text-on-surface mb-0.5">Accumulator</div>
+                The implicit destination of every ALU result. ADD, AND, LDA, MTA — all write here. It is also operand A for most ALU operations.
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded p-3 border border-secondary-container/20 flex gap-3 items-start">
+              <div class="font-mono text-secondary-container font-bold text-xs shrink-0 w-20 pt-0.5">R62 · RPC</div>
+              <div class="text-[10px] text-on-surface-variant/80">
+                <div class="font-bold text-on-surface mb-0.5">Return Program Counter</div>
+                Saved automatically in FETCH1 to record the address of the current instruction. Use <span class="font-mono text-on-surface">JPRT r62</span> to return from a subroutine.
+              </div>
+            </div>
+            <div class="bg-surface-container-lowest rounded p-3 border border-secondary-container/20 flex gap-3 items-start">
+              <div class="font-mono text-secondary-container font-bold text-xs shrink-0 w-20 pt-0.5">R63 · PC</div>
+              <div class="text-[10px] text-on-surface-variant/80">
+                <div class="font-bold text-on-surface mb-0.5">Program Counter</div>
+                Points to the next instruction to fetch. Auto-incremented each FETCH1. Jump instructions write a new address here.
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="bg-surface-container-lowest p-2.5 rounded border border-outline-variant/15 text-[9px] font-mono text-on-surface-variant/60">
+              R1–R61 are free for general use: data values, pointers, loop counters, or scratch.
+            </div>
+            <div class="bg-surface-container-lowest p-2.5 rounded border border-outline-variant/15 text-[9px] font-mono text-on-surface-variant/60">
+              Changed registers flash <span class="text-primary-container">green</span> in the right panel. ACC, RPC, and PC are highlighted in <span class="text-secondary-container">blue</span>.
+            </div>
+          </div>`
+      },
+      {
+        title: "Conditions & Flags",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-3">
+            Every instruction can be made <span class="text-secondary-container font-bold">conditional</span> — it only executes if the named flag condition holds. Append a condition code directly after the opcode.
+          </p>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div class="text-[9px] font-mono text-primary-container font-bold mb-2">STATUS FLAGS (Z N C V)</div>
+              <div class="space-y-1.5 text-[10px]">
+                <div class="flex gap-2 items-start"><span class="font-mono text-primary-container font-bold w-5 shrink-0 pt-0.5">Z</span><span class="text-on-surface-variant/80">Zero — result equals 0x0000</span></div>
+                <div class="flex gap-2 items-start"><span class="font-mono text-primary-container font-bold w-5 shrink-0 pt-0.5">N</span><span class="text-on-surface-variant/80">Negative — result bit 15 is 1 (signed)</span></div>
+                <div class="flex gap-2 items-start"><span class="font-mono text-primary-container font-bold w-5 shrink-0 pt-0.5">C</span><span class="text-on-surface-variant/80">Carry — unsigned overflow out of bit 15</span></div>
+                <div class="flex gap-2 items-start"><span class="font-mono text-primary-container font-bold w-5 shrink-0 pt-0.5">V</span><span class="text-on-surface-variant/80">oVerflow — signed two's-complement overflow</span></div>
+              </div>
+            </div>
+            <div>
+              <div class="text-[9px] font-mono text-secondary-container font-bold mb-2">CONDITION CODES</div>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] font-mono">
+                <div><span class="text-secondary-container font-bold">T</span> <span class="text-on-surface-variant/50">always</span></div>
+                <div><span class="text-secondary-container font-bold">F</span> <span class="text-on-surface-variant/50">never</span></div>
+                <div><span class="text-secondary-container font-bold">Z</span> <span class="text-on-surface-variant/50">zero</span></div>
+                <div><span class="text-secondary-container font-bold">NZ</span> <span class="text-on-surface-variant/50">not zero</span></div>
+                <div><span class="text-secondary-container font-bold">P</span> <span class="text-on-surface-variant/50">positive</span></div>
+                <div><span class="text-secondary-container font-bold">NP</span> <span class="text-on-surface-variant/50">not positive</span></div>
+                <div><span class="text-secondary-container font-bold">N</span> <span class="text-on-surface-variant/50">negative</span></div>
+                <div><span class="text-secondary-container font-bold">NN</span> <span class="text-on-surface-variant/50">not negative</span></div>
+                <div><span class="text-secondary-container font-bold">C</span> <span class="text-on-surface-variant/50">carry</span></div>
+                <div><span class="text-secondary-container font-bold">NC</span> <span class="text-on-surface-variant/50">no carry</span></div>
+                <div><span class="text-secondary-container font-bold">V</span> <span class="text-on-surface-variant/50">overflow</span></div>
+                <div><span class="text-secondary-container font-bold">NV</span> <span class="text-on-surface-variant/50">no overflow</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest rounded p-3 border border-outline-variant/15 text-[10px]">
+            <div class="text-on-surface-variant/40 font-mono text-[9px] mb-2">EXAMPLE — flags in action</div>
+            <div class="font-mono space-y-1">
+              <div><span class="text-primary-container">MTATS</span> <span class="text-on-surface">0x00</span>  <span class="text-on-surface-variant/40 ml-2">; ACC=0 → Z=1, N=0</span></div>
+              <div><span class="text-primary-container">ADDTS</span> <span class="text-on-surface">0x05</span>  <span class="text-on-surface-variant/40 ml-2">; ACC=5 → Z=0, N=0</span></div>
+              <div><span class="text-primary-container">SUBTS</span> <span class="text-on-surface">0x05</span>  <span class="text-on-surface-variant/40 ml-2">; ACC=0 → Z=1, N=0</span></div>
+              <div><span class="text-primary-container">ANDZ </span> <span class="text-on-surface">r1   </span>  <span class="text-on-surface-variant/40 ml-2">; executes (Z=1); no S = flags unchanged</span></div>
+              <div><span class="text-primary-container">ANDNZ</span> <span class="text-on-surface">r1   </span>  <span class="text-on-surface-variant/40 ml-2">; skipped  (Z=1, condition NZ fails)</span></div>
+            </div>
+          </div>`
+      },
+      {
+        title: "The 5-Stage Pipeline",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-3">
+            Each instruction passes through <span class="text-primary-container font-bold">5 sequential stages</span>.
+            Press <strong>Next Cycle</strong> to advance one stage and watch exactly what changes.
+          </p>
+          <div class="space-y-2">
+            <div class="flex gap-3 items-start bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="font-mono text-[10px] text-primary-container font-bold w-20 shrink-0 pt-0.5">FETCH1</div>
+              <div class="text-[10px] text-on-surface-variant/80">Snapshots the current <span class="font-mono text-on-surface">PC</span> into <span class="font-mono text-on-surface">RPC</span>, then increments <span class="font-mono text-on-surface">PC</span> by 1. This prepares the fetch address while advancing the counter.</div>
+            </div>
+            <div class="flex gap-3 items-start bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="font-mono text-[10px] text-primary-container font-bold w-20 shrink-0 pt-0.5">FETCH2</div>
+              <div class="text-[10px] text-on-surface-variant/80">Reads the 16-bit instruction word from program memory at address <span class="font-mono text-on-surface">RPC</span> and latches it into the <strong>Instruction Register</strong>.</div>
+            </div>
+            <div class="flex gap-3 items-start bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="font-mono text-[10px] text-secondary-container font-bold w-20 shrink-0 pt-0.5">DECODE</div>
+              <div class="text-[10px] text-on-surface-variant/80">Splits the word into COND / OP / U / I / VAL. Reads operands from the register file. Sets <span class="font-mono text-on-surface">MUX_A</span> (ACC or PC) and <span class="font-mono text-on-surface">MUX_B</span> (IMM or register) selects.</div>
+            </div>
+            <div class="flex gap-3 items-start bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="font-mono text-[10px] text-primary-container font-bold w-20 shrink-0 pt-0.5">EXEC</div>
+              <div class="text-[10px] text-on-surface-variant/80">The ALU computes the result from <span class="font-mono text-on-surface">op_a</span> and <span class="font-mono text-on-surface">op_b</span>. If the U bit is set, Z/N/C/V flags are updated with the result's properties.</div>
+            </div>
+            <div class="flex gap-3 items-start bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="font-mono text-[10px] text-primary-container font-bold w-20 shrink-0 pt-0.5">STORE</div>
+              <div class="text-[10px] text-on-surface-variant/80">Writes the result to <span class="font-mono text-on-surface">ACC</span> (arithmetic/logic/load ops) or to <span class="font-mono text-on-surface">DATA MEM</span> (STA). The cycle then wraps back to FETCH1.</div>
+            </div>
+          </div>
+          <div class="mt-3 bg-surface-container-lowest p-2.5 rounded border border-outline-variant/15 font-mono text-[9px] text-on-surface-variant/50">
+            FETCH1→FETCH2→DECODE→EXEC→STORE = 5 cycles per instruction.
+            The pipeline state is shown in the schematic header and the top of the Inspector panel.
+          </div>`
+      },
+      {
+        title: "Try It — Your First Program",
+        content: `
+          <p class="text-on-surface/80 text-sm leading-relaxed mb-3">
+            You're ready to simulate! Follow these four steps:
+          </p>
+          <div class="space-y-2 mb-4">
+            <div class="flex gap-3 items-center bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="w-6 h-6 rounded-full bg-primary-container text-black text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">1</div>
+              <div class="text-[10px] text-on-surface-variant/80">Click <span class="font-mono text-primary-container font-bold">Load Sample</span> in the left panel to fill the editor with a demo program, or type your own assembly.</div>
+            </div>
+            <div class="flex gap-3 items-center bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="w-6 h-6 rounded-full bg-primary-container text-black text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">2</div>
+              <div class="text-[10px] text-on-surface-variant/80">Click <span class="font-mono text-primary-container font-bold">Assemble</span>. A green confirmation shows how many instructions were compiled.</div>
+            </div>
+            <div class="flex gap-3 items-center bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="w-6 h-6 rounded-full bg-primary-container text-black text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">3</div>
+              <div class="text-[10px] text-on-surface-variant/80">Click <span class="font-mono text-primary-container font-bold">Next Cycle</span> repeatedly to step one pipeline stage at a time — the schematic, flags, and registers update after each click.</div>
+            </div>
+            <div class="flex gap-3 items-center bg-surface-container-lowest rounded p-2.5 border border-outline-variant/15">
+              <div class="w-6 h-6 rounded-full bg-primary-container text-black text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">4</div>
+              <div class="text-[10px] text-on-surface-variant/80">Or click <span class="font-mono text-primary-container font-bold">Run</span> to auto-execute at 4 Hz. Click again to pause. <span class="font-mono text-primary-container font-bold">Reset</span> clears all state.</div>
+            </div>
+          </div>
+          <div class="bg-surface-container-lowest rounded p-3 border-l-2 border-primary-container/50 font-mono text-[9px] text-on-surface-variant/60 mb-3">
+            <div class="text-primary-container font-bold mb-1.5">WHAT TO WATCH</div>
+            <div class="space-y-0.5">
+              <div>▸ <span class="text-on-surface/70">Register File</span> — ACC (R0) updates after STORE with each ALU result.</div>
+              <div>▸ <span class="text-on-surface/70">Status Register</span> — Z/N/C/V boxes light up green when a flag is set.</div>
+              <div>▸ <span class="text-on-surface/70">Mux Control</span> — shows which operand path (ACC/PC, IMM/REG) is active.</div>
+              <div>▸ <span class="text-on-surface/70">Pipeline State</span> — current stage displayed top-right of the schematic.</div>
+              <div>▸ <span class="text-on-surface/70">RAM panel</span> — click any value to edit it directly; press Enter to apply.</div>
+            </div>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer text-[10px] text-on-surface-variant/50 hover:text-on-surface-variant/80 transition-colors select-none">
+            <input type="checkbox" id="tutDontShow" style="accent-color:#00ff00;" />
+            Don't show this tutorial again on startup
+          </label>`
+      }
+    ];
+
+    let tutStep = 0;
+
+    function tutRender() {
+      const step = TUTORIAL_STEPS[tutStep];
+      const total = TUTORIAL_STEPS.length;
+      document.getElementById("tutStepTitle").textContent = step.title;
+      document.getElementById("tutStepContent").innerHTML = step.content;
+      document.getElementById("tutStepCounter").textContent = `${tutStep + 1} / ${total}`;
+
+      const dots = document.getElementById("tutDots");
+      dots.innerHTML = TUTORIAL_STEPS.map((_, i) => {
+        const active = i === tutStep;
+        return `<div style="width:6px;height:6px;border-radius:50%;background:${active ? "#00ff00" : "rgba(59,75,53,0.45)"};transition:background 0.2s;"></div>`;
+      }).join("");
+
+      const prevBtn = document.getElementById("tutPrevBtn");
+      const nextBtn = document.getElementById("tutNextBtn");
+      prevBtn.style.visibility = tutStep === 0 ? "hidden" : "visible";
+      if (tutStep === total - 1) {
+        nextBtn.textContent = "✓ DONE";
+        nextBtn.style.background = "#00cc44";
+      } else {
+        nextBtn.textContent = "NEXT →";
+        nextBtn.style.background = "";
+      }
+    }
+
+    function tutNav(dir) {
+      const newStep = tutStep + dir;
+      if (newStep >= TUTORIAL_STEPS.length) {
+        const cb = document.getElementById("tutDontShow");
+        closeTutorial(cb && cb.checked);
+        return;
+      }
+      if (newStep < 0) return;
+      tutStep = newStep;
+      tutRender();
+    }
+
+    function openTutorial() {
+      tutStep = 0;
+      tutRender();
+      document.getElementById("tutorialOverlay").style.display = "flex";
+    }
+
+    function closeTutorial(persist) {
+      document.getElementById("tutorialOverlay").style.display = "none";
+      if (persist) localStorage.setItem("flux16_tutorial_seen", "1");
+    }
+
+    document.getElementById("tutCloseBtn").addEventListener("click", () => closeTutorial(false));
+    document.getElementById("tutNextBtn").addEventListener("click", () => tutNav(1));
+    document.getElementById("tutPrevBtn").addEventListener("click", () => tutNav(-1));
+    document.getElementById("helpBtn").addEventListener("click", openTutorial);
+
+    document.getElementById("tutorialOverlay").addEventListener("click", (e) => {
+      if (e.target === document.getElementById("tutorialOverlay")) closeTutorial(false);
+    });
+
+    if (!localStorage.getItem("flux16_tutorial_seen")) openTutorial();
   </script>
 </body>
 
